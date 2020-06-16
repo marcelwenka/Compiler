@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Compiler
 {
@@ -11,14 +12,23 @@ namespace Compiler
 
         private static StreamWriter sw;
 
-        private static int nr;
+        private static int tempnr;
 
-        public static List<int> errorLines = new List<int>();
+        public static List<int> syntaxErrors = new List<int>();
 
         public static List<SyntaxTree> code = new List<SyntaxTree>();
 
         public static List<Symbol> symbols = new List<Symbol>();
 
+        /// <summary>
+        /// Return value:
+        ///     0 - compiled successfully
+        ///     1 - file error (missing argument or unable to open)
+        ///     2 - syntax error
+        ///     3 - semantic error
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
         public static int Main(string[] args)
         {
             string file;
@@ -53,27 +63,36 @@ namespace Compiler
             var parsedProperly = parser.Parse();
             source.Close();
 
-            if (errorLines.Count == 0)
+            if (syntaxErrors.Count > 0)
             {
-                if (!parsedProperly)
-                    Console.WriteLine($"  syntax error at line: {lineno}");
+                Console.WriteLine($"\n  {syntaxErrors.Count} syntax errors detected.");
 
-                sw = new StreamWriter(file + ".ll");
-                GenCode();
-                sw.Close();
-                Console.WriteLine("  compilation successful\n");
-            }
-            else
-            {
-                Console.WriteLine($"\n  {errorLines.Count} syntax errors detected\n");
+                foreach (var line in syntaxErrors)
+                    Console.WriteLine($"  Syntax error at line: {line}");
 
-                foreach (var err in errorLines)
-                {
-                    Console.WriteLine($"  syntax error at line: {err}");
-                }
+                return 2;
             }
 
-            return errorLines.Count == 0 ? 0 : 2;
+            if (!parsedProperly)
+            {
+                Console.WriteLine($"  Syntax error at line: {lineno}");
+                return 2;
+            }
+
+            if (symbols.GroupBy(x => x.ident).Any(g => g.Count() > 1))
+
+                
+            if (!CheckSymbols() | !CheckCode()) // purposly used | instead of || to call both functions and avoid short-circuiting
+                return 3;
+
+            sw = new StreamWriter(file + ".il");
+            GenProlog();
+            GenCode();
+            GenEpilog();
+            sw.Close();
+            Console.WriteLine("  compilation successful\n");
+
+            return 0;
         }
 
         public static void EmitCode(string instr = null)
@@ -81,40 +100,59 @@ namespace Compiler
             sw.WriteLine(instr);
         }
 
-        public static void EmitCode(string instr, params object[] args)
-        {
-            sw.WriteLine(instr, args);
-        }
-
         public static string NewTemp()
         {
-            return string.Format($"%t{++nr}");
+            return string.Format($"%t{++tempnr}");
+        }
+
+        private static bool CheckSymbols()
+        {
+            bool proper = true;
+
+            foreach (var symbol in symbols.GroupBy(x => x.ident).Where(g => g.Count() > 1))
+            {
+                proper = false;
+                Console.WriteLine($"  Semantic error at line {symbol.First().line}: Two idents defined with the same name.");
+            }
+
+            return proper;
+        }
+
+        private static bool CheckCode()
+        {
+            bool proper = true;
+
+            foreach (var tree in code)
+            {
+                try
+                {
+                    tree.Check();
+                }
+                catch (Exception e)
+                {
+                    proper = false;
+                    Console.WriteLine(e.Message);
+                }
+            }
+
+            return proper;
         }
 
         private static void GenCode()
         {
-            EmitCode("; prolog");
-            EmitCode("@int_res = constant [15 x i8] c\"  Result:  %d\\0A\\00\"");
-            EmitCode("@double_res = constant [16 x i8] c\"  Result:  %lf\\0A\\00\"");
-            EmitCode("@end = constant [20 x i8] c\"\\0AEnd of execution\\0A\\0A\\00\"");
-            EmitCode("declare i32 @printf(i8*, ...)");
-            EmitCode("define void @main()");
-            EmitCode("{");
-            for (char c = 'a'; c <= 'z'; ++c)
-            {
-                EmitCode($"%i{c} = alloca i32");
-                EmitCode($"store i32 0, i32* %i{c}");
-                EmitCode($"%r{c} = alloca double");
-                EmitCode($"store double 0.0, double* %r{c}");
-            }
-            EmitCode();
-
             for (int i = 0; i < code.Count; ++i)
             {
                 code[i].GenCode();
                 EmitCode();
             }
-            EmitCode("}");
+        }
+
+        private static void GenSymbols()
+        {
+            foreach (var symbol in symbols)
+            {
+                EmitCode($".locals init (float64 {symbol.ident})");
+            }
         }
 
         private static void GenProlog()
@@ -126,15 +164,6 @@ namespace Compiler
             EmitCode(".entrypoint");
             EmitCode(".try");
             EmitCode("{");
-            EmitCode();
-
-            EmitCode("// prolog");
-            EmitCode(".locals init ( float64 temp )");
-            for (char c = 'a'; c <= 'z'; ++c)
-            {
-                EmitCode($".locals init ( int32 _i{c} )");
-                EmitCode($".locals init ( float64 _r{c} )");
-            }
             EmitCode();
         }
 
@@ -151,101 +180,91 @@ namespace Compiler
             EmitCode("EndMain: ret");
             EmitCode("}");
         }
-    }
 
-    public abstract class Symbol : Expression
-    {
-        public readonly char type;
-        public readonly string ident;
-        public readonly int line;
-
-        public Symbol(char t, string i)
+        public static void AddNewNode(SyntaxTree tree)
         {
-            type = t;
-            ident = i;
-            Compiler.symbols.Add(this);
+            code.Add(tree);
         }
 
-        public override char CheckType() { return type; }
-    }
-
-    class BoolIdent : Symbol
-    {
-        public BoolIdent(string i) : base('b', i) { }
-
-        public override string GenCode()
+        public static void AddNewSymbol(Symbol symbol)
         {
-            throw new NotImplementedException();
-        }
-    }
-
-    class IntIdent : Symbol
-    {
-        public IntIdent(string i) : base('i', i) { }
-
-        public override string GenCode()
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    class RealIdent : Symbol
-    {
-        public RealIdent(string i) : base('r', i) { }
-
-        public override string GenCode()
-        {
-            throw new NotImplementedException();
+            symbols.Add(symbol);
         }
     }
 
     public abstract class SyntaxTree
     {
+        public char type;
         public int line;
 
-        public abstract char CheckType();
+        public abstract void Check();
 
         public abstract string GenCode();
     }
 
-    public abstract class Expression : SyntaxTree
+    public class Symbol : SyntaxTree
     {
-        public char type;
+        public readonly string ident;
+
+        public Symbol(int ln, string i)
+        {
+            line = ln;
+            type = ' ';
+            ident = i;
+        }
+
+        public Symbol(int ln, char t, string i)
+        {
+            line = ln;
+            type = t;
+            ident = i;
+        }
+
+        public override string GenCode()
+        {
+            return ident;
+        }
+
+        public override void Check()
+        {
+            if (!Compiler.symbols.Any(x => x.ident == ident))
+                throw new ArgumentException($"  Semantic error at line {line}: ident undeclared");
+        }
     }
 
     class WriteString : SyntaxTree
     {
         private string value;
 
-        public WriteString(string v) { value = v; }
+        public WriteString(int ln, string v) { line = ln; value = v; }
 
-        public override char CheckType() { return ' '; }
+        public override void Check() { }
 
         public override string GenCode()
         {
-            Compiler.EmitCode($"call i32 (i8*, ...) @printf(i8* bitcast ([15 x i8]* @int_res to i8*), i32)");
+            Compiler.EmitCode($"ldstr {value}");
+            Compiler.EmitCode($"call void [mscorlib]System.Console::Write(string)");
 
             return null;
         }
-
     }
 
     class WriteExpression : SyntaxTree
     {
-        private Expression exp;
+        private SyntaxTree exp;
 
-        public WriteExpression(SyntaxTree e) { exp = (Expression)e; }
+        public WriteExpression(int ln, SyntaxTree e) { line = ln; exp = e; }
 
-        public override char CheckType() { exp.CheckType(); return ' '; }
+        public override void Check() { exp.Check(); }
 
         public override string GenCode()
         {
             string t;
             t = exp.GenCode();
-            if (exp.type == 'i')
-                Compiler.EmitCode($"call i32 (i8*, ...) @printf(i8* bitcast ([15 x i8]* @int_res to i8*), i32 {t})");
-            else
-                Compiler.EmitCode($"call i32 (i8*, ...) @printf(i8* bitcast ([16 x i8]* @double_res to i8*), double {t})");
+            //if (exp.type == 'i')
+            Compiler.EmitCode($"call i32 (i8*, ...) @printf(i8* bitcast ([15 x i8]* @int_res to i8*), i32 {t})");
+            //else
+            Compiler.EmitCode($"call i32 (i8*, ...) @printf(i8* bitcast ([16 x i8]* @double_res to i8*), double {t})");
             return null;
         }
 
@@ -255,9 +274,13 @@ namespace Compiler
     {
         private readonly string ident;
 
-        public Read(string i) { ident = i; }
+        public Read(int ln, string id) { line = ln; ident = id; }
 
-        public override char CheckType() { return ' '; }
+        public override void Check()
+        {
+            if (!Compiler.symbols.Any(x => x.ident == ident))
+                throw new ArgumentException($"  Semantic error at line {line}: {ident} undeclared.");
+        }
 
         public override string GenCode()
         {
@@ -270,62 +293,145 @@ namespace Compiler
 
     class Assign : SyntaxTree
     {
-        private string id;
+        private string ident;
+        private char identType;
         private SyntaxTree exp;
 
-        public Assign(string i, SyntaxTree e, int l) { id = i; exp = e; line = l; }
+        public Assign(int ln, SyntaxTree e, string id) { line = ln; ident = id; exp = e; }
 
-        public override char CheckType()
+        public override void Check()
         {
-            exp.CheckType();
-            //if (id[0] == '@' && exp.type != 'i')
-            //    throw new ErrorException($"  line {line,3}:  semantic error - cannot convert real to int", false);
-            return ' ';
+            if (!Compiler.symbols.Any(x => x.ident == ident))
+                throw new ArgumentException($"  Semantic error at line {line}: {ident} undeclared.");
+
+            identType = Compiler.symbols.First(x => x.ident == ident).type;
+
+            exp.Check();
+
+            if (identType != exp.type)
+                if (identType != 'd' && exp.type != 'i')
+                    throw new ArgumentException($"  Semantic error at line {line}: Cannot assign expression type to ident type.");
         }
 
         public override string GenCode()
         {
             string t1, t2;
             t1 = exp.GenCode();
-            if (id[0] == '$' /*&& exp.type != 'r'*/)
+            if (identType == 'd' && exp.type == 'i')
             {
                 t2 = Compiler.NewTemp();
                 Compiler.EmitCode($"{t2} = sitofp i32 {t1} to double");
             }
             else
                 t2 = t1;
-            Compiler.EmitCode("store {0} {1}, {0}* %{2}{3}", id[0] == '@' ? "i32" : "double", t2, id[0] == '@' ? 'i' : 'r', id[1]);
-            return null;
+            //Compiler.EmitCode("store {0} {1}, {0}* %{2}{3}", id[0] == '@' ? "i32" : "double", t2, id[0] == '@' ? 'i' : 'r', id[1]);
+            return ident;
         }
     }
 
-    class Exit : SyntaxTree
+    class Return : SyntaxTree
     {
-        public override char CheckType() { return ' '; }  // operacja pusta - typy są sprawdzane tylko dla wyrażeń
+        public Return(int ln) { line = ln; }
+
+        public override void Check() { }
 
         public override string GenCode()
         {
-            Compiler.EmitCode("call i32 (i8*, ...) @printf(i8* bitcast ([20 x i8]* @end to i8*))");
-            Compiler.EmitCode("ret void");
+            Compiler.EmitCode("ret");
             return null;
         }
     }
 
-    class BinaryOp : SyntaxTree
+    class Or : SyntaxTree
+    {
+        private SyntaxTree left;
+        private SyntaxTree right;
+
+        public Or(int ln, SyntaxTree l, SyntaxTree r, Tokens k) { line = ln; left = l; right = r; }
+
+        public override void Check()
+        {
+            left.Check();
+            right.Check();
+
+            if (left.type != 'b' || right.type != 'b')
+                throw new ArgumentException($"  Semantic error at line {line}: For logical operations both arguments have to be of type bool.");
+
+            type = 'b';
+        }
+
+        public override string GenCode()
+        {
+            return null;
+        }
+    }
+
+    class And : SyntaxTree
+    {
+        private SyntaxTree left;
+        private SyntaxTree right;
+
+        public And(int ln, SyntaxTree l, SyntaxTree r) { line = ln; left = l; right = r; }
+
+        public override void Check()
+        {
+            left.Check();
+            right.Check();
+
+            if (left.type != 'b' || right.type != 'b')
+                throw new ArgumentException($"  Semantic error at line {line}: For logical operations both arguments have to be of type bool.");
+
+            type = 'b';
+        }
+
+        public override string GenCode()
+        {
+            return null;
+        }
+    }
+
+    class Relational : SyntaxTree
     {
         private SyntaxTree left;
         private SyntaxTree right;
         private Tokens kind;
 
-        public BinaryOp(SyntaxTree l, SyntaxTree r, Tokens k, int ln) { left = l; right = r; kind = k; line = ln; }
+        public Relational(int ln, SyntaxTree l, SyntaxTree r, Tokens k) { line = ln; left = l; right = r; kind = k; }
 
-        public override char CheckType()
+        public override void Check()
         {
-            left.CheckType();
-            right.CheckType();
-            //type = left.type == 'i' && right.type == 'i' ? 'i' : 'r';
-            //return type;
-            return ' ';
+            left.Check();
+            right.Check();
+
+            if ((left.type == 'b') ^ (right.type == 'b'))
+                throw new ArgumentException($"  Semantic error at line {line}: For relational operations both arguments or none of them have to be of type bool.");
+
+            type = 'b';
+        }
+
+        public override string GenCode()
+        {
+            return null;
+        }
+    }
+
+    class AdditiveMultiplicative : SyntaxTree
+    {
+        private SyntaxTree left;
+        private SyntaxTree right;
+        private Tokens kind;
+
+        public AdditiveMultiplicative(int ln, SyntaxTree l, SyntaxTree r, Tokens k) { line = ln; left = l; right = r; kind = k; }
+
+        public override void Check()
+        {
+            left.Check();
+            right.Check();
+
+            if (left.type == 'b' || right.type == 'b')
+                throw new ArgumentException($"  Semantic error at line {line}: Bool is not a proper type for additive and multiplivative operations.");
+
+            type = left.type == 'i' && right.type == 'i' ? 'i' : 'r';
         }
 
         public override string GenCode()
@@ -339,7 +445,7 @@ namespace Compiler
                 Compiler.EmitCode($"{t2} = sitofp i32 {t1} to double");
             }
             //else
-                t2 = t1;
+            t2 = t1;
             t3 = right.GenCode();
             //if (right.type != type)
             {
@@ -347,23 +453,23 @@ namespace Compiler
                 Compiler.EmitCode($"{t4} = sitofp i32 {t3} to double");
             }
             //else
-                t4 = t3;
+            t4 = t3;
 
             tw = Compiler.NewTemp();
             //tt = type == 'i' ? "i32" : "double";
             switch (kind)
             {
                 case Tokens.Plus:
-            //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "add i32" : "fadd double", t2, t4);
+                    //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "add i32" : "fadd double", t2, t4);
                     break;
                 case Tokens.Minus:
-            //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "sub i32" : "fsub double", t2, t4);
+                    //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "sub i32" : "fsub double", t2, t4);
                     break;
                 case Tokens.Multiply:
-            //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "mul i32" : "fmul double", t2, t4);
+                    //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "mul i32" : "fmul double", t2, t4);
                     break;
                 case Tokens.Divide:
-            //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "sdiv i32" : "fdiv double", t2, t4);
+                    //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "sdiv i32" : "fdiv double", t2, t4);
                     break;
                 default:
                     break;
@@ -373,16 +479,98 @@ namespace Compiler
         }
     }
 
+    class Bit : SyntaxTree
+    {
+        private SyntaxTree left;
+        private SyntaxTree right;
+        private Tokens kind;
+
+        public Bit(int ln, SyntaxTree l, SyntaxTree r, Tokens k) { line = ln; left = l; right = r; kind = k; }
+
+        public override void Check()
+        {
+            left.Check();
+            right.Check();
+
+            if (left.type != 'i' || right.type != 'i')
+                throw new ArgumentException($"  Semantic error at line {line}: For bit operations both arguments have to be of type int.");
+
+            type = 'i';
+        }
+
+        public override string GenCode()
+        {
+            return null;
+        }
+    }
+
+    class Unary : SyntaxTree
+    {
+        private SyntaxTree tree;
+        private Tokens kind;
+
+        public Unary(int ln, SyntaxTree t, Tokens k) { line = ln; tree = t; kind = k; }
+
+        public override void Check()
+        {
+            tree.Check();
+
+            if (kind == Tokens.Minus)
+            {
+                if (tree.type == 'b')
+                    throw new ArgumentException($"  Semantic error at line {line}: Unary minus does not accept arguments of type bool.");
+
+                type = tree.type;
+            }
+            else if (kind == Tokens.BitNeg)
+            {
+                if (tree.type != 'i')
+                    throw new ArgumentException($"  Semantic error at line {line}: Bitwise negation accepts only arguments of type int.");
+
+                type = tree.type;
+            }
+            else if (kind == Tokens.IntCast)
+            {
+                type = 'i';
+            }
+            else if (kind == Tokens.DoubleCast)
+            {
+                type = 'd';
+            }
+        }
+
+        public override string GenCode()
+        {
+            return null;
+        }
+    }
+
+    class BoolValue : SyntaxTree
+    {
+        private bool val;
+
+        public BoolValue(int ln, bool v) { line = ln; val = v; }
+
+        public override void Check()
+        {
+            type = 'b';
+        }
+
+        public override string GenCode()
+        {
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.0###############}", val);
+        }
+    }
+
     class IntValue : SyntaxTree
     {
         private int val;
 
-        public IntValue(int v) { val = v; }
+        public IntValue(int ln, int v) { line = ln; val = v; }
 
-        public override char CheckType()
+        public override void Check()
         {
-        //    type = 'i';
-            return 'i';
+            type = 'i';
         }
 
         public override string GenCode()
@@ -395,12 +583,11 @@ namespace Compiler
     {
         private double val;
 
-        public RealValue(double v) { val = v; }
+        public RealValue(int ln, double v) { line = ln; val = v; }
 
-        public override char CheckType()
+        public override void Check()
         {
-        //    type = 'r';
-            return 'r';
+            type = 'r';
         }
 
         public override string GenCode()

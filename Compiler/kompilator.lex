@@ -5,13 +5,13 @@
 Integer [1-9][0-9]*|0
 Real ([1-9][0-9]*|0)\.[0-9]+
 Ident [a-zA-Z][a-zA-Z0-9]*
-String \".*\"
+String \"(\\.|[^"\\])*\"
 
 %%
 
+"//".*		{ }
 "program"	{ return (int)Tokens.Program; }
 ";"			{ return (int)Tokens.Semicolon; }
-"//".*		{ }
 "(int)"		{ return (int)Tokens.IntCast; }
 "(double)"	{ return (int)Tokens.DoubleCast; }
 "int"		{ return (int)Tokens.Int; }

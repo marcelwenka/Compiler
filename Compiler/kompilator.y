@@ -37,7 +37,7 @@ start :
             declarations
             commands
             CloseCurly Eof { YYACCEPT; }
-          | error { Compiler.errorLines.Add(Compiler.lineno); YYABORT; }
+          | error { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
           ;
 
 declarations :
@@ -48,16 +48,16 @@ declarations :
 
 declaration :
             Int
-            Ident { new IntIdent($2); }
-            Semicolon
+            Ident
+            Semicolon { new Symbol(Compiler.lineno, 'i', $2); }
           | Real
-            Ident { new RealIdent($2); }
-            Semicolon
+            Ident
+            Semicolon { new Symbol(Compiler.lineno, 'r', $2); }
           | Bool
-            Ident { new BoolIdent($2); }
-            Semicolon
-          | error Semicolon declaration { Compiler.errorLines.Add(Compiler.lineno); }
-          | error Eof { Compiler.errorLines.Add(Compiler.lineno); YYABORT; }
+            Ident
+            Semicolon { new Symbol(Compiler.lineno, 'b', $2); }
+          | error Semicolon declaration { Compiler.syntaxErrors.Add(Compiler.lineno); }
+          | error Eof { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
           ;
 
 commands :
@@ -74,23 +74,23 @@ command :
           | if
           | while
           | return
-          | error Semicolon command { Compiler.errorLines.Add(Compiler.lineno); }
-          | error Eof { Compiler.errorLines.Add(Compiler.lineno); YYABORT; }
+          | error Semicolon command { Compiler.syntaxErrors.Add(Compiler.lineno); }
+          | error Eof { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
           ;
 
 write :
             Write
             String
-            Semicolon { new WriteString($2); }
+            Semicolon { Compiler.AddNewNode(new WriteString(Compiler.lineno, $2)); }
           | Write
             expression
-            Semicolon { new WriteExpression($2); }
+            Semicolon { /* Compiler.AddNewNode(new WriteExpression(Compiler.lineno, $2)); */ }
           ;
 
 read :
             Read
             Ident
-            Semicolon { new Read($2); }
+            Semicolon { Compiler.AddNewNode(new Read($2)); }
           ;
 
 return :

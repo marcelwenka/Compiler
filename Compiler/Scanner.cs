@@ -6,9 +6,9 @@
 //
 //  GPLEX Version:  1.2.2
 //  Machine:  ACER-VN7-591G
-//  DateTime: 15.06.2020 03:19:04
+//  DateTime: 16.06.2020 12:57:12
 //  UserName: Marcel
-//  GPLEX input file <../../kompilator.lex - 15.06.2020 02:45:27>
+//  GPLEX input file <../../kompilator.lex - 16.06.2020 11:56:34>
 //  GPLEX frame file <embedded resource>
 //
 //  Option settings: parser, minimize
@@ -165,7 +165,7 @@ namespace Compiler
 
     static int[] startState = new int[] {89, 0};
 
-    static Table[] NxS = new Table[101] {
+    static Table[] NxS = new Table[102] {
 /* NxS[   0] */ new Table(0, 0, 0, null),
 /* NxS[   1] */ new Table(0, 0, -1, null),
 /* NxS[   2] */ new Table(0, 0, -1, null),
@@ -173,9 +173,11 @@ namespace Compiler
 /* NxS[   4] */ new Table(10, 1, -1, new sbyte[] {88}),
 /* NxS[   5] */ new Table(0, 0, -1, null),
 /* NxS[   6] */ new Table(61, 1, -1, new sbyte[] {87}),
-/* NxS[   7] */ new Table(10, 25, 100, new sbyte[] {-1, 100, 100, 100, 100, 100, 
+/* NxS[   7] */ new Table(34, 59, 100, new sbyte[] {86, 100, 100, 100, 100, 100, 
           100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
-          100, 100, 86}),
+          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
+          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
+          100, 100, 100, 100, 101}),
 /* NxS[   8] */ new Table(38, 1, -1, new sbyte[] {85}),
 /* NxS[   9] */ new Table(100, 6, -1, new sbyte[] {91, -1, -1, -1, -1, 92}),
 /* NxS[  10] */ new Table(0, 0, -1, null),
@@ -516,9 +518,7 @@ namespace Compiler
 /* NxS[  83] */ new Table(0, 0, -1, null),
 /* NxS[  84] */ new Table(0, 0, -1, null),
 /* NxS[  85] */ new Table(0, 0, -1, null),
-/* NxS[  86] */ new Table(10, 25, 100, new sbyte[] {-1, 100, 100, 100, 100, 100, 
-          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
-          100, 100, 86}),
+/* NxS[  86] */ new Table(0, 0, -1, null),
 /* NxS[  87] */ new Table(0, 0, -1, null),
 /* NxS[  88] */ new Table(0, 0, -1, null),
 /* NxS[  89] */ new Table(9, 118, 1, new sbyte[] {2, 3, 1, 1, 4, 1, 
@@ -540,9 +540,12 @@ namespace Compiler
 /* NxS[  97] */ new Table(108, 1, -1, new sbyte[] {98}),
 /* NxS[  98] */ new Table(101, 1, -1, new sbyte[] {99}),
 /* NxS[  99] */ new Table(41, 1, -1, new sbyte[] {84}),
-/* NxS[ 100] */ new Table(10, 25, 100, new sbyte[] {-1, 100, 100, 100, 100, 100, 
+/* NxS[ 100] */ new Table(34, 59, 100, new sbyte[] {86, 100, 100, 100, 100, 100, 
           100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
-          100, 100, 86}),
+          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
+          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
+          100, 100, 100, 100, 101}),
+/* NxS[ 101] */ new Table(10, 1, 100, new sbyte[] {-1}),
     };
 
 int NextState() {

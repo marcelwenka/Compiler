@@ -4,9 +4,9 @@
 
 // GPPG version 1.5.2
 // Machine:  ACER-VN7-591G
-// DateTime: 15.06.2020 03:19:04
+// DateTime: 16.06.2020 12:57:12
 // UserName: Marcel
-// Input file <../../kompilator.y - 15.06.2020 03:17:30>
+// Input file <../../kompilator.y - 16.06.2020 12:49:04>
 
 // options: lines gplex
 
@@ -280,7 +280,7 @@ public class Parser: ShiftReduceParser<ValueType, LexLocation>
         break;
       case 3: // start -> error
 #line 40 "../../kompilator.y"
-                  { Compiler.errorLines.Add(Compiler.lineno); YYAbort(); }
+                  { Compiler.syntaxErrors.Add(Compiler.lineno); YYAbort(); }
 #line default
         break;
       case 6: // Anon@1 -> /* empty */
@@ -300,37 +300,37 @@ public class Parser: ShiftReduceParser<ValueType, LexLocation>
         break;
       case 12: // declaration -> error, Semicolon, declaration
 #line 59 "../../kompilator.y"
-                                        { Compiler.errorLines.Add(Compiler.lineno); }
+                                        { Compiler.syntaxErrors.Add(Compiler.lineno); }
 #line default
         break;
       case 13: // declaration -> error, Eof
 #line 60 "../../kompilator.y"
-                      { Compiler.errorLines.Add(Compiler.lineno); YYAbort(); }
+                      { Compiler.syntaxErrors.Add(Compiler.lineno); YYAbort(); }
 #line default
         break;
       case 23: // command -> error, Semicolon, command
 #line 77 "../../kompilator.y"
-                                    { Compiler.errorLines.Add(Compiler.lineno); }
+                                    { Compiler.syntaxErrors.Add(Compiler.lineno); }
 #line default
         break;
       case 24: // command -> error, Eof
 #line 78 "../../kompilator.y"
-                      { Compiler.errorLines.Add(Compiler.lineno); YYAbort(); }
+                      { Compiler.syntaxErrors.Add(Compiler.lineno); YYAbort(); }
 #line default
         break;
       case 25: // write -> Write, String, Semicolon
 #line 84 "../../kompilator.y"
-                      { new WriteString(ValueStack[ValueStack.Depth-2].val); }
+                      { Compiler.AddNewNode(new WriteString(ValueStack[ValueStack.Depth-2].val)); }
 #line default
         break;
       case 26: // write -> Write, expression, Semicolon
 #line 87 "../../kompilator.y"
-                      { new WriteExpression(ValueStack[ValueStack.Depth-2].subtree); }
+                      { /* Compiler.AddNewNode(new WriteExpression($2)); */ }
 #line default
         break;
       case 27: // read -> Read, Ident, Semicolon
 #line 93 "../../kompilator.y"
-                      { new Read(ValueStack[ValueStack.Depth-2].val); }
+                      { Compiler.AddNewNode(new Read(ValueStack[ValueStack.Depth-2].val)); }
 #line default
         break;
       case 33: // expression -> logical
