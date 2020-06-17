@@ -6,9 +6,9 @@
 //
 //  GPLEX Version:  1.2.2
 //  Machine:  ACER-VN7-591G
-//  DateTime: 17.06.2020 02:17:52
+//  DateTime: 17.06.2020 17:46:29
 //  UserName: Marcel
-//  GPLEX input file <../../kompilator.lex - 17.06.2020 01:51:55>
+//  GPLEX input file <../../kompilator.lex - 17.06.2020 15:10:39>
 //  GPLEX frame file <embedded resource>
 //
 //  Option settings: parser, minimize
@@ -125,8 +125,8 @@ namespace Compiler
         
         enum Result {accept, noMatch, contextFound};
 
-        const int maxAccept = 88;
-        const int initial = 89;
+        const int maxAccept = 86;
+        const int initial = 87;
         const int eofNum = 0;
         const int goStart = -1;
         const int INITIAL = 0;
@@ -163,30 +163,30 @@ namespace Compiler
         }
     };
 
-    static int[] startState = new int[] {89, 0};
+    static int[] startState = new int[] {87, 0};
 
-    static Table[] NxS = new Table[102] {
+    static Table[] NxS = new Table[91] {
 /* NxS[   0] */ new Table(0, 0, 0, null),
 /* NxS[   1] */ new Table(0, 0, -1, null),
 /* NxS[   2] */ new Table(0, 0, -1, null),
 /* NxS[   3] */ new Table(0, 0, -1, null),
-/* NxS[   4] */ new Table(10, 1, -1, new sbyte[] {88}),
+/* NxS[   4] */ new Table(10, 1, -1, new sbyte[] {86}),
 /* NxS[   5] */ new Table(0, 0, -1, null),
-/* NxS[   6] */ new Table(61, 1, -1, new sbyte[] {87}),
-/* NxS[   7] */ new Table(34, 59, 100, new sbyte[] {86, 100, 100, 100, 100, 100, 
-          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
-          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
-          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
-          100, 100, 100, 100, 101}),
-/* NxS[   8] */ new Table(38, 1, -1, new sbyte[] {85}),
-/* NxS[   9] */ new Table(100, 6, -1, new sbyte[] {91, -1, -1, -1, -1, 92}),
+/* NxS[   6] */ new Table(61, 1, -1, new sbyte[] {85}),
+/* NxS[   7] */ new Table(34, 59, 89, new sbyte[] {84, 89, 89, 89, 89, 89, 
+          89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 
+          89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 
+          89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 
+          89, 89, 89, 89, 90}),
+/* NxS[   8] */ new Table(38, 1, -1, new sbyte[] {83}),
+/* NxS[   9] */ new Table(0, 0, -1, null),
 /* NxS[  10] */ new Table(0, 0, -1, null),
 /* NxS[  11] */ new Table(0, 0, -1, null),
 /* NxS[  12] */ new Table(0, 0, -1, null),
 /* NxS[  13] */ new Table(0, 0, -1, null),
 /* NxS[  14] */ new Table(47, 1, -1, new sbyte[] {82}),
-/* NxS[  15] */ new Table(46, 1, -1, new sbyte[] {90}),
-/* NxS[  16] */ new Table(46, 12, -1, new sbyte[] {90, -1, 16, 16, 16, 16, 
+/* NxS[  15] */ new Table(46, 1, -1, new sbyte[] {88}),
+/* NxS[  16] */ new Table(46, 12, -1, new sbyte[] {88, -1, 16, 16, 16, 16, 
           16, 16, 16, 16, 16, 16}),
 /* NxS[  17] */ new Table(0, 0, -1, null),
 /* NxS[  18] */ new Table(61, 1, -1, new sbyte[] {80}),
@@ -519,9 +519,7 @@ namespace Compiler
 /* NxS[  84] */ new Table(0, 0, -1, null),
 /* NxS[  85] */ new Table(0, 0, -1, null),
 /* NxS[  86] */ new Table(0, 0, -1, null),
-/* NxS[  87] */ new Table(0, 0, -1, null),
-/* NxS[  88] */ new Table(0, 0, -1, null),
-/* NxS[  89] */ new Table(9, 118, 1, new sbyte[] {2, 3, 1, 1, 4, 1, 
+/* NxS[  87] */ new Table(9, 118, 1, new sbyte[] {2, 3, 1, 1, 4, 1, 
           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
           1, 5, 6, 7, 1, 1, 1, 8, 1, 9, 10, 11, 12, 1, 13, 1, 
           14, 15, 16, 16, 16, 16, 16, 16, 16, 16, 16, 1, 17, 18, 19, 20, 
@@ -529,23 +527,14 @@ namespace Compiler
           21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 1, 1, 1, 1, 
           1, 1, 21, 22, 21, 23, 24, 25, 21, 21, 26, 21, 21, 21, 21, 21, 
           21, 27, 21, 28, 21, 29, 21, 21, 30, 21, 21, 21, 31, 32, 33, 34}),
-/* NxS[  90] */ new Table(48, 10, -1, new sbyte[] {81, 81, 81, 81, 81, 81, 
+/* NxS[  88] */ new Table(48, 10, -1, new sbyte[] {81, 81, 81, 81, 81, 81, 
           81, 81, 81, 81}),
-/* NxS[  91] */ new Table(111, 1, -1, new sbyte[] {95}),
-/* NxS[  92] */ new Table(110, 1, -1, new sbyte[] {93}),
-/* NxS[  93] */ new Table(116, 1, -1, new sbyte[] {94}),
-/* NxS[  94] */ new Table(41, 1, -1, new sbyte[] {83}),
-/* NxS[  95] */ new Table(117, 1, -1, new sbyte[] {96}),
-/* NxS[  96] */ new Table(98, 1, -1, new sbyte[] {97}),
-/* NxS[  97] */ new Table(108, 1, -1, new sbyte[] {98}),
-/* NxS[  98] */ new Table(101, 1, -1, new sbyte[] {99}),
-/* NxS[  99] */ new Table(41, 1, -1, new sbyte[] {84}),
-/* NxS[ 100] */ new Table(34, 59, 100, new sbyte[] {86, 100, 100, 100, 100, 100, 
-          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
-          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
-          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
-          100, 100, 100, 100, 101}),
-/* NxS[ 101] */ new Table(10, 1, 100, new sbyte[] {-1}),
+/* NxS[  89] */ new Table(34, 59, 89, new sbyte[] {84, 89, 89, 89, 89, 89, 
+          89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 
+          89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 
+          89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 89, 
+          89, 89, 89, 89, 90}),
+/* NxS[  90] */ new Table(10, 1, 89, new sbyte[] {-1}),
     };
 
 int NextState() {
@@ -971,7 +960,7 @@ int NextState() {
     {
         case eofNum:
             switch (currentStart) {
-                case 89:
+                case 87:
 return (int)Tokens.Eof;
                     break;
             }
@@ -1141,21 +1130,15 @@ yylval.val = yytext; return (int)Tokens.DoubleValue;
 { }
             break;
         case 83:
-return (int)Tokens.IntCast;
-            break;
-        case 84:
-return (int)Tokens.DoubleCast;
-            break;
-        case 85:
 return (int)Tokens.And;
             break;
-        case 86:
+        case 84:
 yylval.val = yytext; return (int)Tokens.String;
             break;
-        case 87:
+        case 85:
 return (int)Tokens.NotEqual;
             break;
-        case 88:
+        case 86:
 Compiler.lineno++;
             break;
         default:

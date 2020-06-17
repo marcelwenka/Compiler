@@ -12,12 +12,10 @@ String \"(\\.|[^"\\])*\"
 "//".*		{ }
 "program"	{ return (int)Tokens.Program; }
 ";"			{ return (int)Tokens.Semicolon; }
-"(int)"		{ return (int)Tokens.IntCast; }
-"(double)"	{ return (int)Tokens.DoubleCast; }
 "int"		{ return (int)Tokens.Int; }
 "double"	{ return (int)Tokens.Double; }
 "bool"		{ return (int)Tokens.Bool; }
-{Double}		{ yylval.val = yytext; return (int)Tokens.DoubleValue; }
+{Double}	{ yylval.val = yytext; return (int)Tokens.DoubleValue; }
 {Integer}	{ yylval.val = yytext; return (int)Tokens.IntegerValue; }
 {String}	{ yylval.val = yytext; return (int)Tokens.String; }
 "true"		{ return (int)Tokens.True; }
