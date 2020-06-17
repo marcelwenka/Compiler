@@ -6,9 +6,9 @@
 //
 //  GPLEX Version:  1.2.2
 //  Machine:  ACER-VN7-591G
-//  DateTime: 16.06.2020 12:57:12
+//  DateTime: 17.06.2020 02:17:52
 //  UserName: Marcel
-//  GPLEX input file <../../kompilator.lex - 16.06.2020 11:56:34>
+//  GPLEX input file <../../kompilator.lex - 17.06.2020 01:51:55>
 //  GPLEX frame file <embedded resource>
 //
 //  Option settings: parser, minimize
@@ -1120,7 +1120,7 @@ return (int)Tokens.False;
 return (int)Tokens.Else;
             break;
         case 74:
-return (int)Tokens.Real;
+return (int)Tokens.Double;
             break;
         case 77:
 return (int)Tokens.Bool;
@@ -1135,7 +1135,7 @@ return (int)Tokens.Equal;
 return (int)Tokens.GreaterEqual;
             break;
         case 81:
-yylval.val = yytext; return (int)Tokens.RealValue;
+yylval.val = yytext; return (int)Tokens.DoubleValue;
             break;
         case 82:
 { }

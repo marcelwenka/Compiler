@@ -11,10 +11,10 @@
 %token Program
 %token Semicolon
 %token IntCast DoubleCast
-%token Int Real Bool
+%token Int Double Bool
 %token Assign
 %token <val> Ident
-%token <val> RealValue IntegerValue String
+%token <val> DoubleValue IntegerValue String
 %token True False
 %token If Else
 %token While
@@ -49,10 +49,10 @@ declarations :
 declaration :
             Int
             Ident
-            Semicolon { new Symbol(Compiler.lineno, 'i', $2); }
-          | Real
+            Semicolon { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'i', $2)); }
+          | Double
             Ident
-            Semicolon { new Symbol(Compiler.lineno, 'r', $2); }
+            Semicolon { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'd', $2)); }
           | Bool
             Ident
             Semicolon { new Symbol(Compiler.lineno, 'b', $2); }
@@ -84,13 +84,13 @@ write :
             Semicolon { Compiler.AddNewNode(new WriteString(Compiler.lineno, $2)); }
           | Write
             expression
-            Semicolon { /* Compiler.AddNewNode(new WriteExpression(Compiler.lineno, $2)); */ }
+            Semicolon { Compiler.AddNewNode(new WriteExpression(Compiler.lineno, $2)); }
           ;
 
 read :
             Read
             Ident
-            Semicolon { Compiler.AddNewNode(new Read($2)); }
+            Semicolon { Compiler.AddNewNode(new Read(Compiler.lineno, $2)); }
           ;
 
 return :
@@ -129,7 +129,7 @@ while :
           ;
 
 expression :
-            logical { $$ = new BoolIdent("qwe"); }
+            logical { $$ = new Symbol(Compiler.lineno, "bsda21"); }
           ;
 
 logical :
@@ -178,7 +178,7 @@ unary :
 
 term : 
             Ident
-          | RealValue
+          | DoubleValue
           | IntegerValue
           | True
           | False

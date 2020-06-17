@@ -3,7 +3,7 @@
 %namespace Compiler
 
 Integer [1-9][0-9]*|0
-Real ([1-9][0-9]*|0)\.[0-9]+
+Double ([1-9][0-9]*|0)\.[0-9]+
 Ident [a-zA-Z][a-zA-Z0-9]*
 String \"(\\.|[^"\\])*\"
 
@@ -15,9 +15,9 @@ String \"(\\.|[^"\\])*\"
 "(int)"		{ return (int)Tokens.IntCast; }
 "(double)"	{ return (int)Tokens.DoubleCast; }
 "int"		{ return (int)Tokens.Int; }
-"double"	{ return (int)Tokens.Real; }
+"double"	{ return (int)Tokens.Double; }
 "bool"		{ return (int)Tokens.Bool; }
-{Real}		{ yylval.val = yytext; return (int)Tokens.RealValue; }
+{Double}		{ yylval.val = yytext; return (int)Tokens.DoubleValue; }
 {Integer}	{ yylval.val = yytext; return (int)Tokens.IntegerValue; }
 {String}	{ yylval.val = yytext; return (int)Tokens.String; }
 "true"		{ return (int)Tokens.True; }

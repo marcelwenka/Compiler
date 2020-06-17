@@ -79,14 +79,12 @@ namespace Compiler
                 return 2;
             }
 
-            if (symbols.GroupBy(x => x.ident).Any(g => g.Count() > 1))
-
-                
-            if (!CheckSymbols() | !CheckCode()) // purposly used | instead of || to call both functions and avoid short-circuiting
+            if (!CheckSymbols() | !CheckCode()) // purpously used | instead of || to call both functions and avoid short-circuiting
                 return 3;
 
             sw = new StreamWriter(file + ".il");
             GenProlog();
+            GenSymbols();
             GenCode();
             GenEpilog();
             sw.Close();
@@ -100,9 +98,18 @@ namespace Compiler
             sw.WriteLine(instr);
         }
 
-        public static string NewTemp()
+        public static string NewTemp(char type)
         {
-            return string.Format($"%t{++tempnr}");
+            if (type == 'd')
+                EmitCode($".locals init (float64 t{++tempnr})");
+            else if (type == 'i')
+                EmitCode($".locals init (int32 t{++tempnr})");
+            else if (type == 'b')
+                EmitCode($".locals init (int32 t{++tempnr})");
+            else if (type == 's')
+                EmitCode($".locals init (string t{++tempnr})");
+
+            return $"t{tempnr}";
         }
 
         private static bool CheckSymbols()
@@ -151,7 +158,18 @@ namespace Compiler
         {
             foreach (var symbol in symbols)
             {
-                EmitCode($".locals init (float64 {symbol.ident})");
+                switch (symbol.type)
+                {
+                    case 'b':
+                        EmitCode($".locals init (int32 {symbol.ident})");
+                        break;
+                    case 'd':
+                        EmitCode($".locals init (float64 {symbol.ident})");
+                        break;
+                    case 'i':
+                        EmitCode($".locals init (int32 {symbol.ident})");
+                        break;
+                }
             }
         }
 
@@ -229,6 +247,8 @@ namespace Compiler
         {
             if (!Compiler.symbols.Any(x => x.ident == ident))
                 throw new ArgumentException($"  Semantic error at line {line}: ident undeclared");
+
+            type = Compiler.symbols.First(x => x.ident == ident).type;
         }
     }
 
@@ -259,20 +279,34 @@ namespace Compiler
 
         public override string GenCode()
         {
-            string t;
-            t = exp.GenCode();
-            //if (exp.type == 'i')
-            Compiler.EmitCode($"call i32 (i8*, ...) @printf(i8* bitcast ([15 x i8]* @int_res to i8*), i32 {t})");
-            //else
-            Compiler.EmitCode($"call i32 (i8*, ...) @printf(i8* bitcast ([16 x i8]* @double_res to i8*), double {t})");
+            var ident = exp.GenCode();
+            if (exp.type == 'i')
+            {
+                Compiler.EmitCode($"ldloc {ident}");
+                Compiler.EmitCode("call void [mscorlib]System.Console::Write(int32)");
+            }
+            else if (exp.type == 'd')
+            {
+                Compiler.EmitCode("call class [mscorlib]System.Globalization.CultureInfo [mscorlib]System.Globalization.CultureInfo::get_InvariantCulture()");
+                Compiler.EmitCode("ldstr \"{0:0.000000}\"");
+                Compiler.EmitCode($"ldloc {ident}");
+                Compiler.EmitCode("box [mscorlib]System.Double");
+                Compiler.EmitCode("call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object)");
+                Compiler.EmitCode("call void [mscorlib]System.Console::Write(string)");
+            }
+            else if (exp.type == 'b')
+            {
+                // todo write expression type boolean
+            }
+
             return null;
         }
-
     }
 
     class Read : SyntaxTree
     {
         private readonly string ident;
+        private char identType;
 
         public Read(int ln, string id) { line = ln; ident = id; }
 
@@ -280,12 +314,29 @@ namespace Compiler
         {
             if (!Compiler.symbols.Any(x => x.ident == ident))
                 throw new ArgumentException($"  Semantic error at line {line}: {ident} undeclared.");
+
+            identType = Compiler.symbols.First(x => x.ident == ident).type;
         }
 
         public override string GenCode()
         {
             Compiler.EmitCode("call string [mscorlib]System.Console::ReadLine()");
-            Compiler.EmitCode($"stloc.s {ident}");
+
+            if (identType == 'i')
+            {
+                Compiler.EmitCode($"call int32 [mscorlib]System.Int32::Parse(string)");
+            }
+            if (identType == 'd')
+            {
+                Compiler.EmitCode("call class [mscorlib]System.Globalization.CultureInfo[mscorlib] System.Globalization.CultureInfo::get_InvariantCulture()");
+                Compiler.EmitCode("call float64 [mscorlib]System.Double::Parse(string, class [mscorlib]System.IFormatProvider)");
+            }
+            if (identType == 'b')
+            {
+                Compiler.EmitCode($"call int32 [mscorlib]System.Int32::Parse(string)"); // todo wczytywanie do bool
+            }
+
+            Compiler.EmitCode($"stloc {ident}");
 
             return null;
         }
@@ -319,7 +370,7 @@ namespace Compiler
             t1 = exp.GenCode();
             if (identType == 'd' && exp.type == 'i')
             {
-                t2 = Compiler.NewTemp();
+                t2 = Compiler.NewTemp('s');
                 Compiler.EmitCode($"{t2} = sitofp i32 {t1} to double");
             }
             else
@@ -431,7 +482,7 @@ namespace Compiler
             if (left.type == 'b' || right.type == 'b')
                 throw new ArgumentException($"  Semantic error at line {line}: Bool is not a proper type for additive and multiplivative operations.");
 
-            type = left.type == 'i' && right.type == 'i' ? 'i' : 'r';
+            type = left.type == 'i' && right.type == 'i' ? 'i' : 'd';
         }
 
         public override string GenCode()
@@ -441,7 +492,7 @@ namespace Compiler
             t1 = left.GenCode();
             //if (left.type != type)
             {
-                t2 = Compiler.NewTemp();
+                t2 = Compiler.NewTemp('i');
                 Compiler.EmitCode($"{t2} = sitofp i32 {t1} to double");
             }
             //else
@@ -449,13 +500,13 @@ namespace Compiler
             t3 = right.GenCode();
             //if (right.type != type)
             {
-                t4 = Compiler.NewTemp();
+                t4 = Compiler.NewTemp('i');
                 Compiler.EmitCode($"{t4} = sitofp i32 {t3} to double");
             }
             //else
             t4 = t3;
 
-            tw = Compiler.NewTemp();
+            tw = Compiler.NewTemp('i');
             //tt = type == 'i' ? "i32" : "double";
             switch (kind)
             {
@@ -579,15 +630,15 @@ namespace Compiler
         }
     }
 
-    class RealValue : SyntaxTree
+    class DoubleValue : SyntaxTree
     {
         private double val;
 
-        public RealValue(int ln, double v) { line = ln; val = v; }
+        public DoubleValue(int ln, double v) { line = ln; val = v; }
 
         public override void Check()
         {
-            type = 'r';
+            type = 'd';
         }
 
         public override string GenCode()
