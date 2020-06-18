@@ -5,16 +5,19 @@
 Integer [1-9][0-9]*|0
 Double ([1-9][0-9]*|0)\.[0-9]+
 Ident [a-zA-Z][a-zA-Z0-9]*
-String \"(\\.|[^"\\])*\"
+String \"([^\\\"]|\\.)*\"
 
 %%
 
 "//".*		{ }
 "program"	{ return (int)Tokens.Program; }
+","			{ return (int)Tokens.Comma; }
 ";"			{ return (int)Tokens.Semicolon; }
 "int"		{ return (int)Tokens.Int; }
 "double"	{ return (int)Tokens.Double; }
 "bool"		{ return (int)Tokens.Bool; }
+"break"		{ return (int)Tokens.Break; }
+"continue"	{ return (int)Tokens.Continue; }
 {Double}	{ yylval.val = yytext; return (int)Tokens.DoubleValue; }
 {Integer}	{ yylval.val = yytext; return (int)Tokens.IntegerValue; }
 {String}	{ yylval.val = yytext; return (int)Tokens.String; }
@@ -37,8 +40,8 @@ String \"(\\.|[^"\\])*\"
 "!="		{ return (int)Tokens.NotEqual; }
 ">"			{ return (int)Tokens.Greater; }
 "<"			{ return (int)Tokens.Less; }
-"<="		{ return (int)Tokens.GreaterEqual; }
-">="		{ return (int)Tokens.LessEqual; }
+">="		{ return (int)Tokens.GreaterEqual; }
+"<="		{ return (int)Tokens.LessEqual; }
 "||"		{ return (int)Tokens.Or; }
 "&&"		{ return (int)Tokens.And; }
 "="			{ return (int)Tokens.Assign; }

@@ -1,10 +1,10 @@
 
 // ==========================================================================
-//  GPPG error listing for yacc source file <kompilator.y - 14.06.2020 14:51:01>
+//  GPPG error listing for yacc source file <kompilator.y - 18.06.2020 02:33:51>
 // ==========================================================================
 //  Version:  1.5.2
 //  Machine:  ACER-VN7-591G
-//  DateTime: 14.06.2020 14:52:24
+//  DateTime: 18.06.2020 02:33:53
 //  UserName: Marcel
 // ==========================================================================
 
@@ -14,17 +14,18 @@
 
 %union
 {
-    public string   val;
-    public char     type;
+    public string       val;
+    public char         type;
+    public SyntaxTree   subtree;
 }
 
 %token Program
 %token Semicolon
 %token IntCast DoubleCast
-%token Int Real Bool
+%token Int Double Bool
 %token Assign
 %token <val> Ident
-%token <val> RealNumber IntegerNumber String
+%token <val> DoubleValue IntegerValue String
 %token True False
 %token If Else
 %token While
@@ -37,24 +38,17 @@
 %token Return
 %token Eof Error
 
-%type <type> start declarations commands command write assign if while expression interior
+%type <subtree> start declarations declaration commands command write read return assign if else while expression logical relational additive multiplicative bit unary term
 
 %%
-// Error: There are 1 non-terminating NonTerminal Symbols
-   //  {interior}
-// Warning: Terminating interior fixes the following size-1 NonTerminal set
-   // {interior}
-// Warning: NonTerminal symbol "interior" is unreachable
-// Error: NonTerminal symbol "interior" has no productions
-// ------------------------------------------------------------------------
 
 start :
             Program
             OpenCurly
             declarations
             commands
-            CloseCurly { YYACCEPT; }
-          | error { Compiler.errorLines.Add(Compiler.lineno); YYABORT; }
+            CloseCurly Eof { YYACCEPT; }
+          | error { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
           ;
 
 declarations :
@@ -65,15 +59,16 @@ declarations :
 
 declaration :
             Int
-            Ident { new IntIdent($2); }
-            Semicolon
-          | Real
-            Ident { new RealIdent($2); }
-            Semicolon
+            Ident
+            Semicolon { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'i', $2)); }
+          | Double
+            Ident
+            Semicolon { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'd', $2)); }
           | Bool
-            Ident { new BoolIdent($2); }
-            Semicolon
-          | error { Compiler.errorLines.Add(Compiler.lineno); }
+            Ident
+            Semicolon { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'b', $2)); }
+          | error Semicolon declaration { Compiler.syntaxErrors.Add(Compiler.lineno); }
+          | error Eof { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
           ;
 
 commands :
@@ -86,120 +81,121 @@ command :
             OpenCurly commands CloseCurly
           | write
           | read
-          | assign
           | if
           | while
+          | expression Semicolon { Compiler.AddNewNode(new StandaloneExpression(Compiler.lineno, $1)); }
           | return
-          | error { Compiler.errorLines.Add(Compiler.lineno); }
+          | error Semicolon command { Compiler.syntaxErrors.Add(Compiler.lineno); }
+          | error Eof { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
           ;
 
 write :
             Write
             String
-            Semicolon { new WriteString($2); }
+            Semicolon { Compiler.AddNewNode(new WriteString(Compiler.lineno, $2)); }
           | Write
             expression
-            Semicolon { }
+            Semicolon { Compiler.AddNewNode(new WriteExpression(Compiler.lineno, $2)); }
           ;
 
 read :
             Read
-            Ident { new Read($2); }
-            Semicolon
+            Ident
+            Semicolon { Compiler.AddNewNode(new Read(Compiler.lineno, $2)); }
           ;
 
 return :
             Return
-            Semicolon
-          ;
-
-assign :
-            Ident
-            Assign
-            expression
-            Semicolon { }
+            Semicolon { Compiler.AddNewNode(new Return(Compiler.lineno)); }
           ;
 
 if :
             If
             OpenPar
             expression
-            ClosePar
+            ClosePar { Compiler.AddNewNode(new If(Compiler.lineno, $3)); }
             command
-            Else
-            command
-          | If
-            OpenPar
-            expression
-            ClosePar
-            command
+            else
           ;
 
+else :
+            Else { Compiler.AddNewNode(new Else(Compiler.lineno)); }
+            command { Compiler.AddNewNode(new EndElse(Compiler.lineno)); }
+          | /* empty */
+
+
 while :
+//^^^
+// Error: Syntax error, unexpected anchoredSymbol
+// ----------------------------------------------
             While
             OpenPar
             expression
-            ClosePar
-            command
+            ClosePar { Compiler.AddNewNode(new While(Compiler.lineno, $3)); }
+            command { Compiler.AddNewNode(new EndWhile(Compiler.lineno)); }
           ;
 
 expression :
-            logical
-            Semicolon
-          | error
+            assign { $$ = $1; }
+          ;
+
+assign :
+            Ident
+            Assign
+            assign { $$ = new Assign(Compiler.lineno, $1, $3); }
+          | logical { $$ = $1; }
           ;
 
 logical :
-            relational Or logical
-          | relational And logical
-          | relational
+            logical Or relational { $$ = new Logical(Compiler.lineno, Tokens.Or, $1, $3); }
+          | logical And relational { $$ = new Logical(Compiler.lineno, Tokens.And, $1, $3); }
+          | relational { $$ = $1; }
           ;
 
 relational :
-            additive Equal relational
-          | additive NotEqual relational
-          | additive Greater relational
-          | additive Less relational
-          | additive GreaterEqual relational
-          | additive LessEqual relational
-          | additive
+            relational Equal additive { $$ = new Relational(Compiler.lineno, Tokens.Equal, $1, $3); }
+          | relational NotEqual additive { $$ = new Relational(Compiler.lineno, Tokens.NotEqual, $1, $3); }
+          | relational Greater additive { $$ = new Relational(Compiler.lineno, Tokens.Greater, $1, $3); }
+          | relational Less additive { $$ = new Relational(Compiler.lineno, Tokens.Less, $1, $3); }
+          | relational GreaterEqual additive { $$ = new Relational(Compiler.lineno, Tokens.GreaterEqual, $1, $3); }
+          | relational LessEqual additive { $$ = new Relational(Compiler.lineno, Tokens.LessEqual, $1, $3); }
+          | additive { $$ = $1; }
           ;
 
 additive :
-            multiplicative Plus additive
-          | multiplicative Minus additive
-          | multiplicative
+            additive Plus multiplicative { $$ = new AdditiveMultiplicative(Compiler.lineno, Tokens.Plus, $1, $3); }
+          | additive Minus multiplicative { $$ = new AdditiveMultiplicative(Compiler.lineno, Tokens.Minus, $1, $3); }
+          | multiplicative { $$ = $1; }
           ;
 
 multiplicative :
-            bit Multiply multiplicative
-          | bit Divide multiplicative
-          | bit
+            multiplicative Multiply bit { $$ = new AdditiveMultiplicative(Compiler.lineno, Tokens.Multiply, $1, $3); }
+          | multiplicative Divide bit { $$ = new AdditiveMultiplicative(Compiler.lineno, Tokens.Divide, $1, $3); }
+          | bit { $$ = $1; }
           ;
 
 bit :
-            unary BitOr bit
-          | unary BitAnd bit
-          | unary
+            bit BitOr unary { $$ = new Bit(Compiler.lineno, Tokens.BitOr, $1, $3); }
+          | bit BitAnd unary { $$ = new Bit(Compiler.lineno, Tokens.BitAnd, $1, $3); }
+          | unary { $$ = $1; }
           ;
 
 unary :   
-            Minus unary
-          | BitNeg unary
-          | Neg unary
-          | IntCast unary
-          | DoubleCast unary
-          | OpenPar expression ClosePar
-          | term
+            Minus unary { $$ = new Unary(Compiler.lineno, Tokens.Minus, $2); }
+          | BitNeg unary { $$ = new Unary(Compiler.lineno, Tokens.BitNeg, $2); }
+          | Neg unary { $$ = new Unary(Compiler.lineno, Tokens.Neg, $2); }
+          | OpenPar Int ClosePar unary { $$ = new Unary(Compiler.lineno, Tokens.IntCast, $4); }
+          | OpenPar Double ClosePar unary { $$ = new Unary(Compiler.lineno, Tokens.DoubleCast, $4); }
+          | OpenPar expression ClosePar { $$ = $2; }
+          | term { $$ = $1; }
           ;
 
 term : 
-            Ident
-          | RealNumber
-          | IntegerNumber
-          | True
-          | False
-          | OpenPar term ClosePar
+            Ident { $$ = new Symbol(Compiler.lineno, $1); }
+          | DoubleValue { $$ = new NumericValue(Compiler.lineno, 'd', $1); }
+          | IntegerValue  { $$ = new NumericValue(Compiler.lineno, 'i', $1); }
+          | True { $$ = new BoolValue(Compiler.lineno, true); }
+          | False { $$ = new BoolValue(Compiler.lineno, false); }
           ;
 
 %%

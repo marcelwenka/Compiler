@@ -9,7 +9,7 @@
 }
 
 %token Program
-%token Semicolon
+%token Comma Semicolon
 %token IntCast DoubleCast
 %token Int Double Bool
 %token Assign
@@ -18,6 +18,7 @@
 %token True False
 %token If Else
 %token While
+%token Break Continue
 %token Read Write
 %token Plus Minus Multiply Divide
 %token BitNeg BitOr BitAnd
@@ -27,7 +28,7 @@
 %token Return
 %token Eof Error
 
-%type <subtree> start declarations declaration commands command write read return assign if while expression logical relational additive multiplicative bit unary term
+%type <subtree> start declarations declaration commands command write read return assign if else while expression logical relational additive multiplicative bit unary term
 
 %%
 
@@ -43,26 +44,52 @@ start :
 declarations :
             declaration
             declarations
+          | error Semicolon declaration { Compiler.syntaxErrors.Add(Compiler.lineno); }
+          | error Eof { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
           | /* empty */
           ;
 
 declaration :
             Int
-            Ident
-            Semicolon { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'i', $2)); }
+            Ident { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'i', $2)); }
+            intDeclarations
+            Semicolon
           | Double
-            Ident
-            Semicolon { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'd', $2)); }
+            Ident { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'd', $2)); }
+            doubleDeclarations
+            Semicolon
           | Bool
-            Ident
-            Semicolon { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'b', $2)); }
-          | error Semicolon declaration { Compiler.syntaxErrors.Add(Compiler.lineno); }
-          | error Eof { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
+            Ident { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'b', $2)); }
+            boolDeclarations
+            Semicolon
+          ;
+
+intDeclarations:
+            Comma
+            Ident { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'i', $2)); }
+            intDeclarations
+          | /* empty */
+          ;
+
+doubleDeclarations:
+            Comma
+            Ident { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'd', $2)); }
+            doubleDeclarations
+          | /* empty */
+          ;
+
+boolDeclarations:
+            Comma
+            Ident { Compiler.AddNewSymbol(new Symbol(Compiler.lineno, 'b', $2)); }
+            boolDeclarations
+          | /* empty */
           ;
 
 commands :
             command
             commands
+          | error Semicolon command { Compiler.syntaxErrors.Add(Compiler.lineno); }
+          | error Eof { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
           | /* empty */
           ;
 
@@ -74,8 +101,9 @@ command :
           | while
           | expression Semicolon { Compiler.AddNewNode(new StandaloneExpression(Compiler.lineno, $1)); }
           | return
-          | error Semicolon command { Compiler.syntaxErrors.Add(Compiler.lineno); }
-          | error Eof { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
+          | Break Semicolon { Compiler.AddNewNode(new Break(Compiler.lineno, "1")); }
+          | Break IntegerValue Semicolon { Compiler.AddNewNode(new Break(Compiler.lineno, $2)); }
+          | Continue Semicolon { Compiler.AddNewNode(new Continue(Compiler.lineno)); }
           ;
 
 write :
@@ -95,30 +123,30 @@ read :
 
 return :
             Return
-            Semicolon
+            Semicolon { Compiler.AddNewNode(new Return(Compiler.lineno)); }
           ;
 
 if :
             If
             OpenPar
             expression
-            ClosePar
+            ClosePar { Compiler.AddNewNode(new If(Compiler.lineno, $3)); }
             command
-            Else
-            command
-          | If
-            OpenPar
-            expression
-            ClosePar
-            command
+            else
+          ;
+
+else :
+            Else { Compiler.AddNewNode(new Else(Compiler.lineno)); }
+            command { Compiler.AddNewNode(new EndElse(Compiler.lineno)); }
+          | /* empty */ { Compiler.AddNewNode(new EndIf(Compiler.lineno)); }
           ;
 
 while :
             While
             OpenPar
             expression
-            ClosePar
-            command
+            ClosePar { Compiler.AddNewNode(new While(Compiler.lineno, $3)); }
+            command { Compiler.AddNewNode(new EndWhile(Compiler.lineno)); }
           ;
 
 expression :

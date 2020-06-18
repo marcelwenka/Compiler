@@ -12,13 +12,19 @@ namespace Compiler
 
         private static StreamWriter sw;
 
-        private static int tempnr;
+        private static int labelNumber = 0;
+
+        public static int loopDepth = 0;
 
         public static List<int> syntaxErrors = new List<int>();
 
         public static List<SyntaxTree> code = new List<SyntaxTree>();
 
         public static List<Symbol> symbols = new List<Symbol>();
+
+        public static List<(string, string)> loopLabels = new List<(string, string)>();
+
+        public static List<(string, string)> ifLabels = new List<(string, string)>();
 
         /// <summary>
         /// Return value:
@@ -98,18 +104,9 @@ namespace Compiler
             sw.WriteLine(instr);
         }
 
-        public static string NewTemp(char type)
+        public static string NewLabel()
         {
-            if (type == 'd')
-                EmitCode($".locals init (float64 t{++tempnr})");
-            else if (type == 'i')
-                EmitCode($".locals init (int32 t{++tempnr})");
-            else if (type == 'b')
-                EmitCode($".locals init (bool t{++tempnr})");
-            else if (type == 's')
-                EmitCode($".locals init (string t{++tempnr})");
-
-            return $"t{tempnr}";
+            return $"t{++labelNumber}";
         }
 
         private static bool CheckSymbols()
@@ -208,12 +205,56 @@ namespace Compiler
         {
             symbols.Add(symbol);
         }
+
+        public static (string, string) AddNewLoopBlock()
+        {
+            var labels = (NewLabel(), NewLabel());
+
+            loopLabels.Add(labels);
+
+            return labels;
+        }
+
+        public static (string, string) AddNewIfBlock()
+        {
+            var labels = (NewLabel(), NewLabel());
+
+            ifLabels.Add(labels);
+
+            return labels;
+        }
+
+        public static (string, string) GetLoopBlock(int depth = 1)
+        {
+            return loopLabels[loopLabels.Count - depth];
+        }
+
+        public static (string, string) PopLoopBlock()
+        {
+            var currentLabels = loopLabels.Last();
+            loopLabels.RemoveAt(loopLabels.Count - 1);
+            return currentLabels;
+        }
+
+        public static (string, string) GetIfBlock()
+        {
+            return ifLabels[ifLabels.Count - 1];
+        }
+
+        public static (string, string) PopIfBlock()
+        {
+            var currentLabels = ifLabels.Last();
+            ifLabels.RemoveAt(ifLabels.Count - 1);
+            return currentLabels;
+        }
     }
 
     public abstract class SyntaxTree
     {
         public char type;
         public int line;
+
+        public SyntaxTree(int ln) { line = ln; }
 
         public abstract void Check();
 
@@ -224,16 +265,14 @@ namespace Compiler
     {
         public readonly string ident;
 
-        public Symbol(int ln, string i)
+        public Symbol(int ln, string i) : base(ln)
         {
-            line = ln;
             type = ' ';
             ident = i;
         }
 
-        public Symbol(int ln, char t, string i)
+        public Symbol(int ln, char t, string i) : base(ln)
         {
-            line = ln;
             type = t;
             ident = i;
         }
@@ -256,7 +295,7 @@ namespace Compiler
     {
         private string value;
 
-        public WriteString(int ln, string v) { line = ln; value = v; }
+        public WriteString(int ln, string v) : base(ln) { value = v; }
 
         public override void Check() { }
 
@@ -271,7 +310,7 @@ namespace Compiler
     {
         private SyntaxTree exp;
 
-        public WriteExpression(int ln, SyntaxTree e) { line = ln; exp = e; }
+        public WriteExpression(int ln, SyntaxTree e) : base(ln) { exp = e; }
 
         public override void Check() { exp.Check(); }
 
@@ -302,32 +341,31 @@ namespace Compiler
     class Read : SyntaxTree
     {
         private readonly string ident;
-        private char identType;
 
-        public Read(int ln, string id) { line = ln; ident = id; }
+        public Read(int ln, string id) : base(ln) { ident = id; }
 
         public override void Check()
         {
             if (!Compiler.symbols.Any(x => x.ident == ident))
                 throw new ArgumentException($"  Semantic error at line {line}: {ident} undeclared.");
 
-            identType = Compiler.symbols.First(x => x.ident == ident).type;
+            type = Compiler.symbols.First(x => x.ident == ident).type;
         }
 
         public override void GenCode()
         {
             Compiler.EmitCode("call string [mscorlib]System.Console::ReadLine()");
 
-            if (identType == 'i')
+            if (type == 'i')
             {
                 Compiler.EmitCode($"call int32 [mscorlib]System.Int32::Parse(string)");
             }
-            if (identType == 'd')
+            if (type == 'd')
             {
                 Compiler.EmitCode("call class [mscorlib]System.Globalization.CultureInfo[mscorlib] System.Globalization.CultureInfo::get_InvariantCulture()");
                 Compiler.EmitCode("call float64 [mscorlib]System.Double::Parse(string, class [mscorlib]System.IFormatProvider)");
             }
-            if (identType == 'b')
+            if (type == 'b')
             {
                 Compiler.EmitCode($"call bool [mscorlib]System.Boolean::Parse(string)");
             }
@@ -336,15 +374,167 @@ namespace Compiler
         }
     }
 
-    class Return : SyntaxTree
+    class While : SyntaxTree
     {
-        public Return(int ln) { line = ln; }
+        SyntaxTree exp;
+
+        public While(int ln, SyntaxTree e) : base(ln)
+        {
+            exp = e;
+        }
+
+        public override void Check()
+        {
+            Compiler.loopDepth++;
+            exp.Check();
+
+            if (exp.type != 'b')
+                throw new ArgumentException($"  Semantic error at line {line}: While argument has to be of type bool.");
+        }
+
+        public override void GenCode()
+        {
+            var currentLabels = Compiler.AddNewLoopBlock();
+            Compiler.EmitCode($"{currentLabels.Item1}: nop");
+            exp.GenCode();
+            Compiler.EmitCode($"brfalse {currentLabels.Item2}");
+        }
+    }
+
+    class EndWhile : SyntaxTree
+    {
+        public EndWhile(int ln) : base(ln) { }
+
+        public override void Check()
+        {
+            Compiler.loopDepth--;
+        }
+
+        public override void GenCode()
+        {
+            var currentLabels = Compiler.PopLoopBlock();
+
+            Compiler.EmitCode($"br {currentLabels.Item1}");
+            Compiler.EmitCode($"{currentLabels.Item2}: nop");
+        }
+    }
+
+    class Break : SyntaxTree
+    {
+        string depthString;
+        int depth;
+
+        public Break(int ln, string d) : base(ln) { depthString = d; }
+
+        public override void Check()
+        {
+            if (!int.TryParse(depthString, out depth))
+                throw new ArgumentException($"  Semantic error at line {line}: Couldn't parse break's depth.");
+
+            if (depth < 1)
+                throw new ArgumentException($"  Semantic error at line {line}: Break's argument has to at least equal to 1.");
+
+            if (depth > Compiler.loopDepth)
+                throw new ArgumentException($"  Semantic error at line {line}: Not enough loops to break out of.");
+        }
+
+        public override void GenCode()
+        {
+            var currentLabels = Compiler.GetLoopBlock(depth);
+            Compiler.EmitCode($"br {currentLabels.Item2}");
+        }
+    }
+
+    class Continue : SyntaxTree
+    {
+        public Continue(int ln) : base(ln) { }
 
         public override void Check() { }
 
         public override void GenCode()
         {
-            Compiler.EmitCode("ret"); // todo return
+            var currentLabels = Compiler.GetLoopBlock();
+            Compiler.EmitCode($"br {currentLabels.Item1}");
+        }
+    }
+
+    class If : SyntaxTree
+    {
+        SyntaxTree exp;
+
+        public If(int ln, SyntaxTree e) : base(ln)
+        {
+            exp = e;
+        }
+
+        public override void Check()
+        {
+            exp.Check();
+
+            if (exp.type != 'b')
+                throw new ArgumentException($"  Semantic error at line {line}: If argument has to be of type bool.");
+        }
+
+        public override void GenCode()
+        {
+            var currentLabels = Compiler.AddNewIfBlock();
+            exp.GenCode();
+            Compiler.EmitCode($"brfalse {currentLabels.Item1}");
+        }
+    }
+
+    class EndIf : SyntaxTree
+    {
+        public EndIf(int ln) : base(ln) { }
+
+        public override void Check() { }
+
+        public override void GenCode()
+        {
+            var currentLabels = Compiler.PopIfBlock();
+
+            Compiler.EmitCode($"{currentLabels.Item1}: nop");
+        }
+    }
+
+    class Else : SyntaxTree
+    {
+        public Else(int ln) : base(ln) { }
+
+        public override void Check() { }
+
+        public override void GenCode()
+        {
+            var currentLabels = Compiler.GetIfBlock();
+
+            Compiler.EmitCode($"br {currentLabels.Item2}");
+            Compiler.EmitCode($"{currentLabels.Item1}: nop");
+        }
+    }
+
+    class EndElse : SyntaxTree
+    {
+        public EndElse(int ln) : base(ln) { }
+
+        public override void Check() { }
+
+        public override void GenCode()
+        {
+            var currentLabels = Compiler.PopIfBlock();
+
+            Compiler.EmitCode($"{currentLabels.Item2}: nop");
+        }
+    }
+
+    class Return : SyntaxTree
+    {
+        public Return(int ln) : base(ln) { }
+
+        public override void Check() { }
+
+        public override void GenCode()
+        {
+            Compiler.EmitCode("leave EndMain");
         }
     }
 
@@ -352,9 +542,12 @@ namespace Compiler
     {
         SyntaxTree exp;
 
-        public StandaloneExpression(int ln, SyntaxTree e) { line = ln; exp = e; }
+        public StandaloneExpression(int ln, SyntaxTree e) : base(ln) { exp = e; }
 
-        public override void Check() { }
+        public override void Check()
+        {
+            exp.Check();
+        }
 
         public override void GenCode()
         {
@@ -366,41 +559,33 @@ namespace Compiler
     class Assign : SyntaxTree
     {
         private string ident;
-        private char identType;
         private SyntaxTree exp;
 
-        public Assign(int ln, string id, SyntaxTree e) { line = ln; ident = id; exp = e; }
+        public Assign(int ln, string id, SyntaxTree e) : base(ln) { ident = id; exp = e; }
 
         public override void Check()
         {
             if (!Compiler.symbols.Any(x => x.ident == ident))
                 throw new ArgumentException($"  Semantic error at line {line}: {ident} undeclared.");
 
-            identType = Compiler.symbols.First(x => x.ident == ident).type;
+            type = Compiler.symbols.First(x => x.ident == ident).type;
 
             exp.Check();
 
-            if (identType != exp.type)
-                if (identType != 'd' && exp.type != 'i')
+            if (type != exp.type)
+                if (type != 'd' && exp.type != 'i')
                     throw new ArgumentException($"  Semantic error at line {line}: Cannot assign expression type to ident type.");
         }
 
         public override void GenCode()
         {
-            // todo assign
-
             exp.GenCode();
 
-            //string t1, t2;
-            //t1 = exp.GenCode();
-            //if (identType == 'd' && exp.type == 'i')
-            //{
-            //    t2 = Compiler.NewTemp('s');
-            //    Compiler.EmitCode($"{t2} = sitofp i32 {t1} to double");
-            //}
-            //else
-            //    t2 = t1;
-            //Compiler.EmitCode("store {0} {1}, {0}* %{2}{3}", id[0] == '@' ? "i32" : "double", t2, id[0] == '@' ? 'i' : 'r', id[1]);
+            if (type == 'd' && exp.type == 'i')
+                Compiler.EmitCode("conv.r8");
+
+            Compiler.EmitCode($"dup");
+            Compiler.EmitCode($"stloc {ident}");
         }
     }
 
@@ -410,7 +595,7 @@ namespace Compiler
         private SyntaxTree right;
         private Tokens kind;
 
-        public Logical(int ln, Tokens k, SyntaxTree l, SyntaxTree r) { line = ln; kind = k; left = l; right = r; }
+        public Logical(int ln, Tokens k, SyntaxTree l, SyntaxTree r) : base(ln) { kind = k; left = l; right = r; }
 
         public override void Check()
         {
@@ -425,7 +610,27 @@ namespace Compiler
 
         public override void GenCode()
         {
-            // todo logical
+            var first = Compiler.NewLabel();
+            var second = Compiler.NewLabel();
+
+            if (kind == Tokens.And)
+            {
+                left.GenCode();
+                Compiler.EmitCode($"brfalse {first}");
+                right.GenCode();
+                Compiler.EmitCode($"br {second}");
+                Compiler.EmitCode($"{first}: ldc.i4.0");
+                Compiler.EmitCode($"{second}: nop");
+            }
+            else if (kind == Tokens.Or)
+            {
+                left.GenCode();
+                Compiler.EmitCode($"brtrue {first}");
+                right.GenCode();
+                Compiler.EmitCode($"br {second}");
+                Compiler.EmitCode($"{first}: ldc.i4.1");
+                Compiler.EmitCode($"{second}: nop");
+            }
         }
     }
 
@@ -435,7 +640,7 @@ namespace Compiler
         private SyntaxTree right;
         private Tokens kind;
 
-        public Relational(int ln, Tokens k, SyntaxTree l, SyntaxTree r) { line = ln; kind = k; left = l; right = r; }
+        public Relational(int ln, Tokens k, SyntaxTree l, SyntaxTree r) : base(ln) { kind = k; left = l; right = r; }
 
         public override void Check()
         {
@@ -444,13 +649,49 @@ namespace Compiler
 
             if ((left.type == 'b') ^ (right.type == 'b'))
                 throw new ArgumentException($"  Semantic error at line {line}: For relational operations both arguments or none of them have to be of type bool.");
+            
+            if (left.type == 'b' && (kind != Tokens.Equal && kind != Tokens.NotEqual))
+                throw new ArgumentException($"  Semantic error at line {line}: The only accepted comparisons between two bools are == and !=.");
 
             type = 'b';
         }
 
         public override void GenCode()
         {
-            // todo relational
+            left.GenCode();
+            if (right.type == 'd' && left.type == 'i')
+                Compiler.EmitCode("conv.r8");
+            right.GenCode();
+            if (left.type == 'd' && right.type == 'i')
+                Compiler.EmitCode("conv.r8");
+
+            switch (kind)
+            {
+                case Tokens.Equal:
+                    Compiler.EmitCode("ceq");
+                    break;
+                case Tokens.NotEqual:
+                    Compiler.EmitCode("ceq");
+                    Compiler.EmitCode("ldc.i4.0");
+                    Compiler.EmitCode("ceq");
+                    break;
+                case Tokens.Greater:
+                    Compiler.EmitCode("cgt");
+                    break;
+                case Tokens.Less:
+                    Compiler.EmitCode("clt");
+                    break;
+                case Tokens.GreaterEqual:
+                    Compiler.EmitCode("clt");
+                    Compiler.EmitCode("ldc.i4.0");
+                    Compiler.EmitCode("ceq");
+                    break;
+                case Tokens.LessEqual:
+                    Compiler.EmitCode("cgt");
+                    Compiler.EmitCode("ldc.i4.0");
+                    Compiler.EmitCode("ceq");
+                    break;
+            }
         }
     }
 
@@ -460,7 +701,7 @@ namespace Compiler
         private SyntaxTree right;
         private Tokens kind;
 
-        public AdditiveMultiplicative(int ln, Tokens k, SyntaxTree l, SyntaxTree r) { line = ln; kind = k; left = l; right = r; }
+        public AdditiveMultiplicative(int ln, Tokens k, SyntaxTree l, SyntaxTree r) : base(ln) { kind = k; left = l; right = r; }
 
         public override void Check()
         {
@@ -475,48 +716,28 @@ namespace Compiler
 
         public override void GenCode()
         {
-            // todo multiplicative additive 
+            left.GenCode();
+            if (type == 'd' && left.type == 'i')
+                Compiler.EmitCode("conv.r8");
+            right.GenCode();
+            if (type == 'd' && right.type == 'i')
+                Compiler.EmitCode("conv.r8");
 
-            //string tw, t1, t2, t3, t4, tt;
-
-            //t1 = left.GenCode();
-            ////if (left.type != type)
-            //{
-            //    t2 = Compiler.NewTemp('i');
-            //    Compiler.EmitCode($"{t2} = sitofp i32 {t1} to double");
-            //}
-            ////else
-            //t2 = t1;
-            //t3 = right.GenCode();
-            ////if (right.type != type)
-            //{
-            //    t4 = Compiler.NewTemp('i');
-            //    Compiler.EmitCode($"{t4} = sitofp i32 {t3} to double");
-            //}
-            ////else
-            //t4 = t3;
-
-            //tw = Compiler.NewTemp('i');
-            ////tt = type == 'i' ? "i32" : "double";
-            //switch (kind)
-            //{
-            //    case Tokens.Plus:
-            //        //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "add i32" : "fadd double", t2, t4);
-            //        break;
-            //    case Tokens.Minus:
-            //        //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "sub i32" : "fsub double", t2, t4);
-            //        break;
-            //    case Tokens.Multiply:
-            //        //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "mul i32" : "fmul double", t2, t4);
-            //        break;
-            //    case Tokens.Divide:
-            //        //        Compiler.EmitCode("{0} = {1} {2}, {3}", tw, type == 'i' ? "sdiv i32" : "fdiv double", t2, t4);
-            //        break;
-            //    default:
-            //        break;
-            //        //throw new ErrorException($"  line {line,3}:  internal gencode error", false);
-            //}
-            //return tw;
+            switch (kind)
+            {
+                case Tokens.Plus:
+                    Compiler.EmitCode("add");
+                    break;
+                case Tokens.Minus:
+                    Compiler.EmitCode("sub");
+                    break;
+                case Tokens.Multiply:
+                    Compiler.EmitCode("mul");
+                    break;
+                case Tokens.Divide:
+                    Compiler.EmitCode("div");
+                    break;
+            }
         }
     }
 
@@ -526,7 +747,7 @@ namespace Compiler
         private SyntaxTree right;
         private Tokens kind;
 
-        public Bit(int ln, Tokens k, SyntaxTree l, SyntaxTree r) { line = ln; kind = k; left = l; right = r; }
+        public Bit(int ln, Tokens k, SyntaxTree l, SyntaxTree r) : base(ln) { kind = k; left = l; right = r; }
 
         public override void Check()
         {
@@ -541,34 +762,47 @@ namespace Compiler
 
         public override void GenCode()
         {
-            // todo bit
+            left.GenCode();
+            right.GenCode();
+
+            if (kind == Tokens.BitAnd)
+                Compiler.EmitCode("and");
+            else if (kind == Tokens.BitAnd)
+                Compiler.EmitCode("or");
         }
     }
 
     class Unary : SyntaxTree
     {
-        private SyntaxTree tree;
+        private SyntaxTree exp;
         private Tokens kind;
 
-        public Unary(int ln, Tokens k, SyntaxTree t) { line = ln; kind = k; tree = t; }
+        public Unary(int ln, Tokens k, SyntaxTree t) : base(ln) { kind = k; exp = t; }
 
         public override void Check()
         {
-            tree.Check();
+            exp.Check();
 
             if (kind == Tokens.Minus)
             {
-                if (tree.type == 'b')
+                if (exp.type == 'b')
                     throw new ArgumentException($"  Semantic error at line {line}: Unary minus does not accept arguments of type bool.");
 
-                type = tree.type;
+                type = exp.type;
             }
             else if (kind == Tokens.BitNeg)
             {
-                if (tree.type != 'i')
+                if (exp.type != 'i')
                     throw new ArgumentException($"  Semantic error at line {line}: Bitwise negation accepts only arguments of type int.");
 
-                type = tree.type;
+                type = exp.type;
+            }
+            else if (kind == Tokens.Neg)
+            {
+                if (exp.type != 'b')
+                    throw new ArgumentException($"  Semantic error at line {line}: Logical negation accepts only arguments of type bool.");
+
+                type = exp.type;
             }
             else if (kind == Tokens.IntCast)
             {
@@ -582,7 +816,29 @@ namespace Compiler
 
         public override void GenCode()
         {
-            // todo unary
+            exp.GenCode();
+
+            if (kind == Tokens.Minus)
+            {
+                Compiler.EmitCode("neg");
+            }
+            else if (kind == Tokens.BitNeg)
+            {
+                Compiler.EmitCode("not");
+            }
+            else if (kind == Tokens.Neg)
+            {
+                Compiler.EmitCode("ldc.i4.0");
+                Compiler.EmitCode("ceq");
+            }
+            else if (kind == Tokens.IntCast)
+            {
+                Compiler.EmitCode("conv.i4");
+            }
+            else if (kind == Tokens.DoubleCast)
+            {
+                Compiler.EmitCode("conv.r8");
+            }
         }
     }
 
@@ -590,7 +846,7 @@ namespace Compiler
     {
         private bool val;
 
-        public BoolValue(int ln, bool v) { line = ln; val = v; }
+        public BoolValue(int ln, bool v) : base(ln) { val = v; }
 
         public override void Check()
         {
@@ -610,7 +866,7 @@ namespace Compiler
     {
         private string val;
 
-        public NumericValue(int ln, char t, string v) { line = ln; type = t; val = v; }
+        public NumericValue(int ln, char t, string v) : base(ln) { type = t; val = v; }
 
         public override void Check() { }
 
