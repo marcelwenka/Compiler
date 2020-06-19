@@ -44,7 +44,8 @@ start :
 declarations :
             declaration
             declarations
-          | error Semicolon declaration { Compiler.syntaxErrors.Add(Compiler.lineno); }
+          | error Semicolon { Compiler.syntaxErrors.Add(Compiler.lineno); }
+            declarations
           | error Eof { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
           | /* empty */
           ;
@@ -88,7 +89,8 @@ boolDeclarations:
 commands :
             command
             commands
-          | error Semicolon command { Compiler.syntaxErrors.Add(Compiler.lineno); }
+          | error Semicolon { Compiler.syntaxErrors.Add(Compiler.lineno); }
+            commands
           | error Eof { Compiler.syntaxErrors.Add(Compiler.lineno); YYABORT; }
           | /* empty */
           ;

@@ -6,9 +6,9 @@
 //
 //  GPLEX Version:  1.2.2
 //  Machine:  ACER-VN7-591G
-//  DateTime: 18.06.2020 14:51:46
+//  DateTime: 19.06.2020 16:39:47
 //  UserName: Marcel
-//  GPLEX input file <../../kompilator.lex - 18.06.2020 13:33:35>
+//  GPLEX input file <../../kompilator.lex - 19.06.2020 16:22:10>
 //  GPLEX frame file <embedded resource>
 //
 //  Option settings: parser, minimize
@@ -125,8 +125,8 @@ namespace Compiler
         
         enum Result {accept, noMatch, contextFound};
 
-        const int maxAccept = 99;
-        const int initial = 100;
+        const int maxAccept = 100;
+        const int initial = 101;
         const int eofNum = 0;
         const int goStart = -1;
         const int INITIAL = 0;
@@ -163,31 +163,32 @@ namespace Compiler
         }
     };
 
-    static int[] startState = new int[] {100, 0};
+    static int[] startState = new int[] {101, 0};
 
-    static Table[] NxS = new Table[104] {
+    static Table[] NxS = new Table[106] {
 /* NxS[   0] */ new Table(0, 0, 0, null),
 /* NxS[   1] */ new Table(0, 0, -1, null),
 /* NxS[   2] */ new Table(0, 0, -1, null),
 /* NxS[   3] */ new Table(0, 0, -1, null),
-/* NxS[   4] */ new Table(10, 1, -1, new sbyte[] {99}),
+/* NxS[   4] */ new Table(10, 1, -1, new sbyte[] {100}),
 /* NxS[   5] */ new Table(0, 0, -1, null),
-/* NxS[   6] */ new Table(61, 1, -1, new sbyte[] {98}),
-/* NxS[   7] */ new Table(34, 59, 102, new sbyte[] {97, 102, 102, 102, 102, 102, 
-          102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 
-          102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 
-          102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 
-          102, 102, 102, 102, 103}),
-/* NxS[   8] */ new Table(38, 1, -1, new sbyte[] {96}),
+/* NxS[   6] */ new Table(61, 1, -1, new sbyte[] {99}),
+/* NxS[   7] */ new Table(10, 83, 104, new sbyte[] {-1, 104, 104, 104, 104, 104, 
+          104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 
+          104, 104, 98, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 
+          104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 
+          104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 
+          104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 105}),
+/* NxS[   8] */ new Table(38, 1, -1, new sbyte[] {97}),
 /* NxS[   9] */ new Table(0, 0, -1, null),
 /* NxS[  10] */ new Table(0, 0, -1, null),
 /* NxS[  11] */ new Table(0, 0, -1, null),
 /* NxS[  12] */ new Table(0, 0, -1, null),
 /* NxS[  13] */ new Table(0, 0, -1, null),
 /* NxS[  14] */ new Table(0, 0, -1, null),
-/* NxS[  15] */ new Table(47, 1, -1, new sbyte[] {95}),
-/* NxS[  16] */ new Table(46, 1, -1, new sbyte[] {101}),
-/* NxS[  17] */ new Table(46, 12, -1, new sbyte[] {101, -1, 17, 17, 17, 17, 
+/* NxS[  15] */ new Table(47, 1, -1, new sbyte[] {103}),
+/* NxS[  16] */ new Table(46, 1, -1, new sbyte[] {102}),
+/* NxS[  17] */ new Table(46, 12, -1, new sbyte[] {102, -1, 17, 17, 17, 17, 
           17, 17, 17, 17, 17, 17}),
 /* NxS[  18] */ new Table(0, 0, -1, null),
 /* NxS[  19] */ new Table(61, 1, -1, new sbyte[] {93}),
@@ -587,12 +588,13 @@ namespace Compiler
 /* NxS[  93] */ new Table(0, 0, -1, null),
 /* NxS[  94] */ new Table(48, 10, -1, new sbyte[] {94, 94, 94, 94, 94, 94, 
           94, 94, 94, 94}),
-/* NxS[  95] */ new Table(10, 1, 95, new sbyte[] {-1}),
-/* NxS[  96] */ new Table(0, 0, -1, null),
+/* NxS[  95] */ new Table(0, 0, -1, null),
+/* NxS[  96] */ new Table(10, 4, 103, new sbyte[] {95, 103, 103, 96}),
 /* NxS[  97] */ new Table(0, 0, -1, null),
 /* NxS[  98] */ new Table(0, 0, -1, null),
 /* NxS[  99] */ new Table(0, 0, -1, null),
-/* NxS[ 100] */ new Table(9, 118, 1, new sbyte[] {2, 3, 1, 1, 4, 1, 
+/* NxS[ 100] */ new Table(0, 0, -1, null),
+/* NxS[ 101] */ new Table(9, 118, 1, new sbyte[] {2, 3, 1, 1, 4, 1, 
           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
           1, 5, 6, 7, 1, 1, 1, 8, 1, 9, 10, 11, 12, 13, 14, 1, 
           15, 16, 17, 17, 17, 17, 17, 17, 17, 17, 17, 1, 18, 19, 20, 21, 
@@ -600,14 +602,16 @@ namespace Compiler
           22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 1, 1, 1, 1, 
           1, 1, 22, 23, 24, 25, 26, 27, 22, 22, 28, 22, 22, 22, 22, 22, 
           22, 29, 22, 30, 22, 31, 22, 22, 32, 22, 22, 22, 33, 34, 35, 36}),
-/* NxS[ 101] */ new Table(48, 10, -1, new sbyte[] {94, 94, 94, 94, 94, 94, 
+/* NxS[ 102] */ new Table(48, 10, -1, new sbyte[] {94, 94, 94, 94, 94, 94, 
           94, 94, 94, 94}),
-/* NxS[ 102] */ new Table(34, 59, 102, new sbyte[] {97, 102, 102, 102, 102, 102, 
-          102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 
-          102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 
-          102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 
-          102, 102, 102, 102, 103}),
-/* NxS[ 103] */ new Table(10, 1, 102, new sbyte[] {-1}),
+/* NxS[ 103] */ new Table(10, 4, 103, new sbyte[] {95, 103, 103, 96}),
+/* NxS[ 104] */ new Table(10, 83, 104, new sbyte[] {-1, 104, 104, 104, 104, 104, 
+          104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 
+          104, 104, 98, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 
+          104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 
+          104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 
+          104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 104, 105}),
+/* NxS[ 105] */ new Table(10, 1, 104, new sbyte[] {-1}),
     };
 
 int NextState() {
@@ -1033,7 +1037,7 @@ int NextState() {
     {
         case eofNum:
             switch (currentStart) {
-                case 100:
+                case 101:
 return (int)Tokens.Eof;
                     break;
             }
@@ -1219,18 +1223,20 @@ return (int)Tokens.LessEqual;
 yylval.val = yytext; return (int)Tokens.DoubleValue;
             break;
         case 95:
+        case 96:
+_yytrunc(1); 
 { }
             break;
-        case 96:
+        case 97:
 return (int)Tokens.And;
             break;
-        case 97:
+        case 98:
 yylval.val = yytext; return (int)Tokens.String;
             break;
-        case 98:
+        case 99:
 return (int)Tokens.NotEqual;
             break;
-        case 99:
+        case 100:
 Compiler.lineno++;
             break;
         default:

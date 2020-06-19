@@ -12,6 +12,8 @@ namespace Compiler
 
         private static StreamWriter sw;
 
+        private static int varNumber = 0;
+
         private static int labelNumber = 0;
 
         public static int loopDepth = 0;
@@ -158,13 +160,13 @@ namespace Compiler
                 switch (symbol.type)
                 {
                     case 'b':
-                        EmitCode($".locals init (bool {symbol.ident})");
+                        EmitCode($".locals init (bool {symbol.generatedName})");
                         break;
                     case 'd':
-                        EmitCode($".locals init (float64 {symbol.ident})");
+                        EmitCode($".locals init (float64 {symbol.generatedName})");
                         break;
                     case 'i':
-                        EmitCode($".locals init (int32 {symbol.ident})");
+                        EmitCode($".locals init (int32 {symbol.generatedName})");
                         break;
                 }
             }
@@ -177,6 +179,7 @@ namespace Compiler
             EmitCode(".method static void main()");
             EmitCode("{");
             EmitCode(".entrypoint");
+            EmitCode(".maxstack 128");
             EmitCode(".try");
             EmitCode("{");
             EmitCode();
@@ -204,6 +207,11 @@ namespace Compiler
         public static void AddNewSymbol(Symbol symbol)
         {
             symbols.Add(symbol);
+        }
+
+        public static string GetNewVariableName()
+        {
+            return $"v{++varNumber}";
         }
 
         public static (string, string) AddNewLoopBlock()
@@ -264,6 +272,7 @@ namespace Compiler
     public class Symbol : SyntaxTree
     {
         public readonly string ident;
+        public string generatedName;
 
         public Symbol(int ln, string i) : base(ln)
         {
@@ -275,11 +284,12 @@ namespace Compiler
         {
             type = t;
             ident = i;
+            generatedName = Compiler.GetNewVariableName();
         }
 
         public override void GenCode()
         {
-            Compiler.EmitCode($"ldloc {ident}");
+            Compiler.EmitCode($"ldloc {generatedName}");
         }
 
         public override void Check()
@@ -287,7 +297,9 @@ namespace Compiler
             if (!Compiler.symbols.Any(x => x.ident == ident))
                 throw new ArgumentException($"  Semantic error at line {line}: {ident} undeclared");
 
-            type = Compiler.symbols.First(x => x.ident == ident).type;
+            var originalSymbol = Compiler.symbols.First(x => x.ident == ident);
+            type = originalSymbol.type;
+            generatedName = originalSymbol.generatedName;
         }
     }
 
@@ -341,6 +353,7 @@ namespace Compiler
     class Read : SyntaxTree
     {
         private readonly string ident;
+        private string generatedName;
 
         public Read(int ln, string id) : base(ln) { ident = id; }
 
@@ -349,7 +362,9 @@ namespace Compiler
             if (!Compiler.symbols.Any(x => x.ident == ident))
                 throw new ArgumentException($"  Semantic error at line {line}: {ident} undeclared.");
 
-            type = Compiler.symbols.First(x => x.ident == ident).type;
+            var originalSymbol = Compiler.symbols.First(x => x.ident == ident);
+            type = originalSymbol.type;
+            generatedName = originalSymbol.generatedName;
         }
 
         public override void GenCode()
@@ -370,7 +385,7 @@ namespace Compiler
                 Compiler.EmitCode($"call bool [mscorlib]System.Boolean::Parse(string)");
             }
 
-            Compiler.EmitCode($"stloc {ident}");
+            Compiler.EmitCode($"stloc {generatedName}");
         }
     }
 
@@ -559,6 +574,7 @@ namespace Compiler
     class Assign : SyntaxTree
     {
         private string ident;
+        private string generatedName;
         private SyntaxTree exp;
 
         public Assign(int ln, string id, SyntaxTree e) : base(ln) { ident = id; exp = e; }
@@ -568,12 +584,14 @@ namespace Compiler
             if (!Compiler.symbols.Any(x => x.ident == ident))
                 throw new ArgumentException($"  Semantic error at line {line}: {ident} undeclared.");
 
-            type = Compiler.symbols.First(x => x.ident == ident).type;
+            var originalSymbol = Compiler.symbols.First(x => x.ident == ident);
+            type = originalSymbol.type;
+            generatedName = originalSymbol.generatedName;
 
             exp.Check();
 
             if (type != exp.type)
-                if (type != 'd' && exp.type != 'i')
+                if (type != 'd' || exp.type != 'i')
                     throw new ArgumentException($"  Semantic error at line {line}: Cannot assign expression type to ident type.");
         }
 
@@ -585,7 +603,7 @@ namespace Compiler
                 Compiler.EmitCode("conv.r8");
 
             Compiler.EmitCode($"dup");
-            Compiler.EmitCode($"stloc {ident}");
+            Compiler.EmitCode($"stloc {generatedName}");
         }
     }
 
@@ -767,7 +785,7 @@ namespace Compiler
 
             if (kind == Tokens.BitAnd)
                 Compiler.EmitCode("and");
-            else if (kind == Tokens.BitAnd)
+            else if (kind == Tokens.BitOr)
                 Compiler.EmitCode("or");
         }
     }

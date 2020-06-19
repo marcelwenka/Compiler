@@ -5,11 +5,11 @@
 Integer [1-9][0-9]*|0
 Double ([1-9][0-9]*|0)\.[0-9]+
 Ident [a-zA-Z][a-zA-Z0-9]*
-String \"([^\\\"]|\\.)*\"
+String \"([^\\\"\n]|\\.)*\"
 
 %%
 
-"//".*		{ }
+"//".*$		{ }
 "program"	{ return (int)Tokens.Program; }
 ","			{ return (int)Tokens.Comma; }
 ";"			{ return (int)Tokens.Semicolon; }
