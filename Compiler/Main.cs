@@ -90,12 +90,21 @@ namespace Compiler
             if (!CheckSymbols() | !CheckCode()) // purpously used | instead of || to call both functions and avoid short-circuiting
                 return 3;
 
-            sw = new StreamWriter(file + ".il");
-            GenProlog();
-            GenSymbols();
-            GenCode();
-            GenEpilog();
-            sw.Close();
+            try
+            {
+                sw = new StreamWriter(file + ".il");
+                GenProlog();
+                GenSymbols();
+                GenCode();
+                GenEpilog();
+                sw.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Unexpected error while generating code: " + e.Message);
+            }
+
+
             Console.WriteLine("  compilation successful\n");
 
             return 0;
@@ -305,7 +314,7 @@ namespace Compiler
 
     class WriteString : SyntaxTree
     {
-        private string value;
+        readonly string value;
 
         public WriteString(int ln, string v) : base(ln) { value = v; }
 
@@ -320,7 +329,7 @@ namespace Compiler
 
     class WriteExpression : SyntaxTree
     {
-        private SyntaxTree exp;
+        readonly SyntaxTree exp;
 
         public WriteExpression(int ln, SyntaxTree e) : base(ln) { exp = e; }
 
@@ -391,7 +400,7 @@ namespace Compiler
 
     class While : SyntaxTree
     {
-        SyntaxTree exp;
+        readonly SyntaxTree exp;
 
         public While(int ln, SyntaxTree e) : base(ln)
         {
@@ -436,7 +445,7 @@ namespace Compiler
 
     class Break : SyntaxTree
     {
-        string depthString;
+        readonly string depthString;
         int depth;
 
         public Break(int ln, string d) : base(ln) { depthString = d; }
@@ -444,10 +453,10 @@ namespace Compiler
         public override void Check()
         {
             if (!int.TryParse(depthString, out depth))
-                throw new ArgumentException($"  Semantic error at line {line}: Couldn't parse break's depth.");
+                throw new ArgumentException($"  Semantic error at line {line}: Couldn't parse break depth.");
 
             if (depth < 1)
-                throw new ArgumentException($"  Semantic error at line {line}: Break's argument has to at least equal to 1.");
+                throw new ArgumentException($"  Semantic error at line {line}: Break argument has to be a positive integer.");
 
             if (depth > Compiler.loopDepth)
                 throw new ArgumentException($"  Semantic error at line {line}: Not enough loops to break out of.");
@@ -475,7 +484,7 @@ namespace Compiler
 
     class If : SyntaxTree
     {
-        SyntaxTree exp;
+        readonly SyntaxTree exp;
 
         public If(int ln, SyntaxTree e) : base(ln)
         {
@@ -555,7 +564,7 @@ namespace Compiler
 
     class StandaloneExpression : SyntaxTree
     {
-        SyntaxTree exp;
+        readonly SyntaxTree exp;
 
         public StandaloneExpression(int ln, SyntaxTree e) : base(ln) { exp = e; }
 
@@ -573,9 +582,9 @@ namespace Compiler
 
     class Assign : SyntaxTree
     {
-        private string ident;
+        readonly string ident;
         private string generatedName;
-        private SyntaxTree exp;
+        readonly SyntaxTree exp;
 
         public Assign(int ln, string id, SyntaxTree e) : base(ln) { ident = id; exp = e; }
 
@@ -609,9 +618,9 @@ namespace Compiler
 
     class Logical : SyntaxTree
     {
-        private SyntaxTree left;
-        private SyntaxTree right;
-        private Tokens kind;
+        readonly SyntaxTree left;
+        readonly SyntaxTree right;
+        readonly Tokens kind;
 
         public Logical(int ln, Tokens k, SyntaxTree l, SyntaxTree r) : base(ln) { kind = k; left = l; right = r; }
 
@@ -654,9 +663,9 @@ namespace Compiler
 
     class Relational : SyntaxTree
     {
-        private SyntaxTree left;
-        private SyntaxTree right;
-        private Tokens kind;
+        readonly SyntaxTree left;
+        readonly SyntaxTree right;
+        readonly Tokens kind;
 
         public Relational(int ln, Tokens k, SyntaxTree l, SyntaxTree r) : base(ln) { kind = k; left = l; right = r; }
 
@@ -715,9 +724,9 @@ namespace Compiler
 
     class AdditiveMultiplicative : SyntaxTree
     {
-        private SyntaxTree left;
-        private SyntaxTree right;
-        private Tokens kind;
+        readonly SyntaxTree left;
+        readonly SyntaxTree right;
+        readonly Tokens kind;
 
         public AdditiveMultiplicative(int ln, Tokens k, SyntaxTree l, SyntaxTree r) : base(ln) { kind = k; left = l; right = r; }
 
@@ -761,9 +770,9 @@ namespace Compiler
 
     class Bit : SyntaxTree
     {
-        private SyntaxTree left;
-        private SyntaxTree right;
-        private Tokens kind;
+        readonly SyntaxTree left;
+        readonly SyntaxTree right;
+        readonly Tokens kind;
 
         public Bit(int ln, Tokens k, SyntaxTree l, SyntaxTree r) : base(ln) { kind = k; left = l; right = r; }
 
@@ -792,8 +801,8 @@ namespace Compiler
 
     class Unary : SyntaxTree
     {
-        private SyntaxTree exp;
-        private Tokens kind;
+        readonly SyntaxTree exp;
+        readonly Tokens kind;
 
         public Unary(int ln, Tokens k, SyntaxTree t) : base(ln) { kind = k; exp = t; }
 
@@ -862,7 +871,7 @@ namespace Compiler
 
     class BoolValue : SyntaxTree
     {
-        private bool val;
+        readonly bool val;
 
         public BoolValue(int ln, bool v) : base(ln) { val = v; }
 
@@ -882,7 +891,7 @@ namespace Compiler
 
     class NumericValue : SyntaxTree
     {
-        private string val;
+        readonly string val;
 
         public NumericValue(int ln, char t, string v) : base(ln) { type = t; val = v; }
 
