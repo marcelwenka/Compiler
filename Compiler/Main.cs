@@ -28,6 +28,7 @@ namespace MiniCompiler
         ///     1 - file error (missing argument or unable to open)
         ///     2 - syntax error
         ///     3 - semantic error
+        ///     4 - unexpected error
         /// </summary>
         /// <param name="args"></param>
         /// <returns></returns>
@@ -93,8 +94,8 @@ namespace MiniCompiler
             catch (Exception e)
             {
                 Console.WriteLine("  Unexpected error while generating code: " + e.Message);
+                return 4;
             }
-
 
             Console.WriteLine("  Compilation successful.");
 
