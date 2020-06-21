@@ -1,6 +1,6 @@
 
 %using QUT.Gppg;
-%namespace Compiler
+%namespace MiniCompiler
 
 Integer [1-9][0-9]*|0
 Double ([1-9][0-9]*|0)\.[0-9]+

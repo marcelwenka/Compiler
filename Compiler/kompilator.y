@@ -1,5 +1,5 @@
 
-%namespace Compiler
+%namespace MiniCompiler
 
 %union
 {

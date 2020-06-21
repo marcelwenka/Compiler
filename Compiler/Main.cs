@@ -4,28 +4,22 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Compiler
+namespace MiniCompiler
 {
     public class Compiler
     {
         public static int lineno = 1;
-
-        private static StreamWriter sw;
-
-        private static int varNumber = 0;
-
-        private static int labelNumber = 0;
-
         public static int loopDepth = 0;
 
+        private static StreamWriter outputFile;
+
+        private static int varNumber = 0;
+        private static int labelNumber = 0;
+
         public static List<int> syntaxErrors = new List<int>();
-
         public static List<SyntaxTree> code = new List<SyntaxTree>();
-
         public static List<Symbol> symbols = new List<Symbol>();
-
         public static List<(string, string)> loopLabels = new List<(string, string)>();
-
         public static List<(string, string)> ifLabels = new List<(string, string)>();
 
         /// <summary>
@@ -42,13 +36,13 @@ namespace Compiler
             string file;
             FileStream source;
 
-            Console.WriteLine("Code Generator for Mini");
+            Console.WriteLine("Code Generator for Mini\n");
 
             if (args.Length >= 1)
                 file = args[0];
             else
             {
-                Console.WriteLine("No source file specified");
+                Console.WriteLine("  No source file specified");
                 return 1;
             }
 
@@ -73,7 +67,7 @@ namespace Compiler
 
             if (syntaxErrors.Count > 0)
             {
-                Console.WriteLine($"\n  {syntaxErrors.Count} syntax errors detected.");
+                Console.WriteLine($"  {syntaxErrors.Count} syntax errors detected.");
 
                 foreach (var line in syntaxErrors)
                     Console.WriteLine($"  Syntax error at line: {line}");
@@ -92,27 +86,27 @@ namespace Compiler
 
             try
             {
-                sw = new StreamWriter(file + ".il");
+                outputFile = new StreamWriter(file + ".il");
                 GenProlog();
                 GenSymbols();
                 GenCode();
                 GenEpilog();
-                sw.Close();
+                outputFile.Close();
             }
             catch (Exception e)
             {
-                Console.WriteLine("Unexpected error while generating code: " + e.Message);
+                Console.WriteLine("  Unexpected error while generating code: " + e.Message);
             }
 
 
-            Console.WriteLine("  compilation successful\n");
+            Console.WriteLine("  Compilation successful.");
 
             return 0;
         }
 
         public static void EmitCode(string instr = null)
         {
-            sw.WriteLine(instr);
+            outputFile.WriteLine(instr);
         }
 
         public static string NewLabel()

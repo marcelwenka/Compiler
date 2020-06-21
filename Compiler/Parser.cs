@@ -4,9 +4,9 @@
 
 // GPPG version 1.5.2
 // Machine:  ACER-VN7-591G
-// DateTime: 21.06.2020 16:05:03
+// DateTime: 21.06.2020 16:48:29
 // UserName: Marcel
-// Input file <../../kompilator.y - 19.06.2020 15:25:23>
+// Input file <../../kompilator.y - 21.06.2020 16:45:37>
 
 // options: lines gplex
 
@@ -17,7 +17,7 @@ using System.Globalization;
 using System.Text;
 using QUT.Gppg;
 
-namespace Compiler
+namespace MiniCompiler
 {
 public enum Tokens {error=2,EOF=3,Program=4,Comma=5,Semicolon=6,
     IntCast=7,DoubleCast=8,Int=9,Double=10,Bool=11,Assign=12,
