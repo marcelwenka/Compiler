@@ -4,7 +4,7 @@
 
 // GPPG version 1.5.2
 // Machine:  ACER-VN7-591G
-// DateTime: 21.06.2020 16:48:29
+// DateTime: 21.06.2020 19:20:30
 // UserName: Marcel
 // Input file <../../kompilator.y - 21.06.2020 16:45:37>
 

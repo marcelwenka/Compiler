@@ -6,7 +6,7 @@
 //
 //  GPLEX Version:  1.2.2
 //  Machine:  ACER-VN7-591G
-//  DateTime: 21.06.2020 16:48:29
+//  DateTime: 21.06.2020 19:20:30
 //  UserName: Marcel
 //  GPLEX input file <../../kompilator.lex - 21.06.2020 16:45:36>
 //  GPLEX frame file <embedded resource>

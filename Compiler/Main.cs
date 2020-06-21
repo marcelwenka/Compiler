@@ -48,14 +48,11 @@ namespace MiniCompiler
 
             try
             {
-                var sr = new StreamReader(file);
-                string str = sr.ReadToEnd();
-                sr.Close();
                 source = new FileStream(file, FileMode.Open);
             }
             catch (Exception e)
             {
-                Console.WriteLine("\n" + e.Message);
+                Console.WriteLine(e.Message);
                 return 1;
             }
 
