@@ -1,0 +1,40 @@
+program
+{
+    int max;
+    int val1, val2;
+    bool isPrime;
+    int i;
+
+    read max;
+
+    i = 2;
+    while (i < max)
+    {
+        isPrime = true;
+        if (i & 1 != 0 && (i / 3) * 3 != i) // (i/3)*3!=i is used instead of i%3!=0 because the language does not provide modulo
+        {
+            val1 = 5;
+            while (val1 * val1 <= i)
+            {
+                val2 = val1 + 2;
+                if ((i / val1) * val1 == i || (i / val2) * val2 == i)
+                {
+                    isPrime = false;
+                    break 1;
+                }
+                else
+                    val1 = val1 + 6;
+            }
+        }
+        else if (i != 2)
+            isPrime = false;
+
+        if (isPrime)
+        {
+            write i;
+            write "\n";
+        }
+
+        i = i + 1;
+    }
+}
